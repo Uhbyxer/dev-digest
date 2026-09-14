@@ -96,6 +96,12 @@ export class JobRunner {
         throw err;
       }
     }) as Promise<void>;
+    // Every caller awaits enqueue() itself, not `done` — the failure is
+    // already persisted to the `jobs` row above. Without this, a rejected
+    // `done` that nobody attached a handler to is an unhandled rejection,
+    // which crashes the whole process on any job failure (clone error,
+    // duplicate-key race, etc).
+    done.catch(() => {});
 
     return { id: jobId, done };
   }

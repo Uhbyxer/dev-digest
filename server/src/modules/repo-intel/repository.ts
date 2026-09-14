@@ -272,7 +272,16 @@ export class RepoIntelRepository {
     // the btree row-size limit and crash the indexer (see clampIndexedName).
     const safe = rows.map((r) => ({ ...r, name: clampIndexedName(r.name) }));
     for (let i = 0; i < safe.length; i += INSERT_CHUNK_SIZE) {
-      await this.db.insert(t.symbols).values(safe.slice(i, i + INSERT_CHUNK_SIZE));
+      // The parser can legitimately emit two rows for the same
+      // (repo, path, name, kind, line) tuple (e.g. a declaration merged with
+      // its export). onConflictDoNothing keeps that idempotent instead of
+      // crashing the indexer on symbols_repo_path_name_kind_line_uq.
+      await this.db
+        .insert(t.symbols)
+        .values(safe.slice(i, i + INSERT_CHUNK_SIZE))
+        .onConflictDoNothing({
+          target: [t.symbols.repoId, t.symbols.path, t.symbols.name, t.symbols.kind, t.symbols.line],
+        });
     }
   }
 
