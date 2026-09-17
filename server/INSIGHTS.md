@@ -14,6 +14,7 @@ process).
 ## What Doesn't Work
 
 ## Codebase Patterns
+- `ReviewRepository.completeAgentRun` (`src/modules/reviews/repository.ts`) redeclares its own inline `values` object type instead of importing it from `src/modules/reviews/repository/run.repo.ts`'s `completeAgentRun` — adding a field to one and not the other typechecks as a duplicate-but-unrelated-type error only at the call site in `run-executor.ts`, not where you'd expect. When changing that function's params, update both.
 
 ## Tool & Library Notes
 
