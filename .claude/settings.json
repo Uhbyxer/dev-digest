@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm --version)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(docker compose ps)",
+      "Bash(docker compose ps *)",
+      "Bash(curl http://localhost*)",
+      "Bash(curl -s http://localhost*)",
+      "Bash(curl -s -m * http://localhost*)"
+    ]
+  }
+}
