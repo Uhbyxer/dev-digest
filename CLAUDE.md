@@ -38,3 +38,13 @@ tsconfig path aliases, not published modules.
 - Testing strategy (unit/integration/e2e, CI workflows) → `TESTING.md`
 - Course scope: what's already in the starter vs what each lesson adds →
   `README.md#what-you-build-in-the-course`
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
