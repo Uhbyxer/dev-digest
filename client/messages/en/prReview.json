@@ -29,7 +29,8 @@
   "panel": {
     "hideLowConfidence": "Hide low confidence",
     "noMatchTitle": "No findings match",
-    "noMatchBody": "Adjust the filters above, or run a review to generate findings."
+    "noMatchBody": "Adjust the filters above, or run a review to generate findings.",
+    "showOnlySeverity": "Show only {severity} findings"
   },
   "runReview": {
     "runAll": "Run all enabled agents",
@@ -91,10 +92,13 @@
       "author": "Author",
       "size": "Size",
       "score": "Score",
+      "findings": "Findings",
+      "cost": "Cost",
       "status": "Status",
       "updated": "Updated"
     },
     "filesCount": "{count} files",
+    "findingsPreviewTitle": "{count} {severity} findings",
     "errorTitle": "Couldn’t load pull requests",
     "errorBody": "The engine returned an error.",
     "emptyTitle": "No pull requests",

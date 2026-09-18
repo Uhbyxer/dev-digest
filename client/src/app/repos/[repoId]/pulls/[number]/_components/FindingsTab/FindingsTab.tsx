@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { Icon, Badge, Button, SectionLabel, EmptyState } from "@devdigest/ui";
+import { useSearchParams } from "next/navigation";
+import { Icon, Badge, Button, SectionLabel, EmptyState, type Severity } from "@devdigest/ui";
 import { RunStatus } from "../RunStatus";
 import { RunHistory } from "../RunHistory/RunHistory";
 import { ReviewRunAccordion } from "../ReviewRunAccordion";
+import { SeverityFilterBar } from "./SeverityFilterBar";
 import { s } from "./styles";
 import type { FindingRecord, ReviewRecord, RunSummary, PrCommit } from "@devdigest/shared";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -41,6 +43,16 @@ export function FindingsTab({
   onDelete,
   onRunDone,
 }: FindingsTabProps) {
+  // Deep link: /pulls/N?tab=findings&severity=CRITICAL pre-applies the filter
+  // (the PR list's findings chips navigate here). Unknown values are ignored.
+  const urlSeverity = useSearchParams().get("severity");
+  const [severityFilter, setSeverityFilter] = React.useState<Severity | null>(
+    urlSeverity === "CRITICAL" || urlSeverity === "WARNING" || urlSeverity === "SUGGESTION"
+      ? urlSeverity
+      : null,
+  );
+  const allFindings = React.useMemo(() => runs.flatMap((r) => r.findings), [runs]);
+
   const handleCancelAll = useCallback(() => {
     liveRunIds.forEach((id) => cancelMutation.mutate(id));
   }, [liveRunIds, cancelMutation]);
@@ -144,6 +156,7 @@ export function FindingsTab({
       >
         Review runs
       </SectionLabel>
+      <SeverityFilterBar findings={allFindings} active={severityFilter} onChange={setSeverityFilter} />
       {runs.length === 0 ? (
         reviewRunning || liveRunIds.length > 0 ? null : (
           <EmptyState
@@ -164,6 +177,7 @@ export function FindingsTab({
             headSha={headSha}
             targetRunId={target?.runId ?? null}
             targetNonce={target?.n ?? 0}
+            severityFilter={severityFilter}
           />
         ))
       )}
