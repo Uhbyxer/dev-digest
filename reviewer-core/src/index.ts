@@ -58,3 +58,19 @@ export {
 // The single OpenAI-compatible structured provider (OpenRouter), shared by the
 // CI runner and the server's openrouter path. Owns session grouping + guards.
 export { OpenRouterProvider, type OpenRouterProviderOptions } from './llm/openrouter.js';
+
+// Conventions: pure prompt-building + schemas for the two-step repo
+// code-style detection flow (file selection, then evidence extraction).
+export {
+  buildFileSelectionPrompt,
+  buildExtractionPrompt,
+  type ConventionFileSample,
+  ConventionFileGroup,
+  ConventionFileSelectionResult,
+  ConventionCandidateDetection,
+  ConventionExtractionResult,
+  CONVENTION_FILE_SELECTION_SCHEMA_NAME,
+  CONVENTION_EXTRACTION_SCHEMA_NAME,
+  groundConventionCandidates,
+  type ConventionGroundingResult,
+} from './conventions/index.js';

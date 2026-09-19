@@ -82,6 +82,47 @@ built). Plugin import moves a *bundle* of agents+skills+evals+conventions
 with its own `installed_plugins` bookkeeping; Skill import produces exactly
 one `Skill` row and shares no code path with it.
 
+## Convention
+
+A candidate house rule detected by scanning a repository's own source for a
+recurring pattern (e.g. "always use async/await instead of `.then()`
+chains"). A Convention is an unreviewed *candidate*, scoped to one repo, with
+a `confidence` score and evidence (`evidencePath`, `evidenceSnippet`). It is
+distinct from a **Skill**: a Skill is the prompt content that actually
+reaches an agent; a Convention only becomes one when a user explicitly
+reviews and merges it (see **Create skill from conventions**).
+
+- `status`: `pending | accepted | rejected` — starts `pending`. Rejecting is
+  a soft-delete: the row is kept so a later re-scan can recognize the same
+  convention (matched by evidence location + normalized rule text) and
+  suppress it from resurfacing, rather than showing it again every scan.
+- The `rule` text is user-editable (title/description only) both before and
+  after acceptance; `evidencePath`, `evidenceSnippet`, and `confidence` are
+  detection output and stay read-only. Editing never changes `status` on its
+  own.
+- Not to be confused with `memory.kind = 'convention'` — that's a separate,
+  RAG/embedding-backed subsystem for cross-session memory, unrelated to
+  per-repo-scan detection candidates.
+
+## Create skill from conventions
+
+The flow that turns `accepted` Conventions into a new Skill. Acceptance
+*is* selection — there is no separate "selected but not accepted" state;
+accepting a Convention both marks it reviewed-and-valid and includes it in
+the next skill created from that repo's Conventions.
+
+- Always creates a **new** Skill (v1). Merging into an existing Skill on a
+  later re-scan is out of scope for now.
+- The resulting Skill is always `source: extracted`, per
+  [ADR: skill trust tiers](docs/adr/0001-skill-trust-tiers.md) — even if the
+  user edited a convention's text before merging. Acceptance and editing are
+  not the same guarantee as a user typing content from scratch in the Skill
+  Editor, so the body stays untrusted-but-directive rather than becoming
+  `manual`.
+- A re-scan of the same repo is additive: it never touches existing
+  `accepted`/`rejected` rows, only adds new `pending` candidates (skipping
+  ones that dedupe-match an existing `rejected` row — see **Convention**).
+
 ## Known gap: skill version pinning
 
 `agent_versions.config_json.skills` stores the linked skill **ids** at
