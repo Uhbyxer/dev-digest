@@ -6,7 +6,30 @@ import {
   GENERAL_REVIEWER_PROMPT,
   SECURITY_REVIEWER_PROMPT,
   PERFORMANCE_REVIEWER_PROMPT,
+  TEST_QUALITY_REVIEWER_PROMPT,
 } from './seed-prompts.js';
+
+/**
+ * T7 seed skills — content is deliberately specific (not generic filler) so
+ * the T13 control-experiment test can detect these exact bodies in an
+ * assembled prompt and prove enabling/disabling the skill changes what a
+ * (content-aware fake) LLM sees.
+ */
+const TEST_QUALITY_SKILL_BODY = `# Test quality checklist
+
+When this PR's diff adds or changes a function with new branches, check whether
+the PR's own tests exercise more than the happy path. If a test file only
+covers the happy path and a new error branch, empty-input case, or boundary
+condition introduced by this diff has no corresponding test, flag it as a
+missing corner-case coverage finding — inferred from reading the diff alone,
+never from a coverage report or test-runner output (none exists here).`;
+
+const API_CONTRACT_SKILL_BODY = `# API contract stability
+
+Treat any change to an existing HTTP route's signature — its path, method,
+request body shape, response shape, or status codes — as a breaking change
+unless the diff also updates every caller. Flag a route signature change as a
+breaking-change finding even when the PR description doesn't mention it.`;
 
 /** Default provider/model for the built-in reviewer agents. */
 const DEFAULT_PROVIDER = 'openrouter' as const;
@@ -211,13 +234,82 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       version: 1,
       createdBy: userId,
     },
+    {
+      workspaceId,
+      name: 'Test Quality Reviewer',
+      description: 'Flags uncovered branches, missed corner cases, and flaky-looking tests.',
+      provider: DEFAULT_PROVIDER,
+      model: DEFAULT_MODEL,
+      systemPrompt: TEST_QUALITY_REVIEWER_PROMPT,
+      enabled: true,
+      version: 1,
+      createdBy: userId,
+    },
   ];
+  const agentIdByName = new Map<string, string>();
   for (const a of seedAgents) {
     const [existing] = await db
       .select()
       .from(t.agents)
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.name, a.name)));
-    if (!existing) await db.insert(t.agents).values(a);
+    const row = existing ?? (await db.insert(t.agents).values(a).returning())[0];
+    agentIdByName.set(a.name, row!.id);
+  }
+
+  // ---- skills (T7): at least one Test Quality skill + one imported-source
+  // skill, each linked to a built-in agent, so seed data exercises the full
+  // create → import → link → run pipeline (user story #25) at least once.
+  const seedSkills: Array<{
+    values: typeof t.skills.$inferInsert;
+    linkToAgent: string;
+  }> = [
+    {
+      values: {
+        workspaceId,
+        name: 'Test Quality Checklist',
+        description:
+          'Use when reviewing a diff for test coverage — flags corner cases and error branches the diff\'s own tests appear not to exercise.',
+        type: 'rubric',
+        source: 'manual',
+        body: TEST_QUALITY_SKILL_BODY,
+        enabled: true,
+        version: 1,
+      },
+      linkToAgent: 'Test Quality Reviewer',
+    },
+    {
+      values: {
+        workspaceId,
+        name: 'API Contract Stability',
+        description:
+          'Use when a diff touches an HTTP route — flags a changed request/response shape or status code as a breaking change.',
+        type: 'convention',
+        // Imported-source, per T5/T6 (a standalone markdown upload maps to
+        // 'imported_url') — exercises the import path in seed data.
+        source: 'imported_url',
+        body: API_CONTRACT_SKILL_BODY,
+        enabled: true,
+        version: 1,
+      },
+      linkToAgent: 'General Reviewer',
+    },
+  ];
+  for (const s of seedSkills) {
+    const [existing] = await db
+      .select()
+      .from(t.skills)
+      .where(and(eq(t.skills.workspaceId, workspaceId), eq(t.skills.name, s.values.name)));
+    let skillId = existing?.id;
+    if (!skillId) {
+      const [row] = await db.insert(t.skills).values(s.values).returning();
+      skillId = row!.id;
+      await db.insert(t.skillVersions).values({ skillId, version: 1, body: s.values.body });
+    }
+    const agentId = agentIdByName.get(s.linkToAgent)!;
+    await db
+      .insert(t.agentSkills)
+      .values({ agentId, skillId, order: 0 })
+      .onConflictDoNothing();
   }
 
   return { workspaceId, userId };

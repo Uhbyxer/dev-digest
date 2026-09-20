@@ -1,6 +1,6 @@
 import type { Container } from '../../platform/container.js';
-import type { Provider, Review, RunTrace, UnifiedDiff } from '@devdigest/shared';
-import { reviewPullRequest, countBlockers } from '@devdigest/reviewer-core';
+import type { Provider, Review, RunTrace, SkillSource, UnifiedDiff } from '@devdigest/shared';
+import { reviewPullRequest, countBlockers, type PromptSkill } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
 import * as schema from '../../db/schema.js';
 import type { AgentRow } from '../../db/rows.js';
@@ -168,6 +168,11 @@ export class ReviewRunExecutor {
       const repoIntelOn = agent.repoIntel !== false;
       if (!repoIntelOn) runLog.info('Repo intel disabled for this agent — skipping context enrichment');
 
+      // T4 — kick off the agent's linked-skills lookup NOW: it depends only on
+      // agent.id, not on any repo-intel result below, so there's no reason to
+      // wait for the (already-sequential) repo-intel chain before starting it.
+      const skillsPromise = this.buildSkills(agent.id, runLog);
+
       // T1.3 — callers-in-prompt. Best-effort: when repo-intel is off the facade
       // returns []; we omit the section and behavior is identical to the
       // pre-T1.3 prompt (acceptance #10).
@@ -183,6 +188,13 @@ export class ReviewRunExecutor {
 
       const task = taskLine(pull) + rankNote;
 
+      // This agent's linked, GLOBALLY-enabled skills, in link order. There is
+      // no separate per-link "enabled" column (spec: reuse the schema as-is)
+      // — unlinking IS how a skill is disabled for one specific agent (T10's
+      // checkbox unchecking a skill removes it via setSkills). A
+      // globally-disabled skill is excluded even if still linked.
+      const skills = await skillsPromise;
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -195,6 +207,7 @@ export class ReviewRunExecutor {
         // Per-agent review strategy (configured in the Agent editor); falls back
         // to the studio default. single-pass = whole diff in one call.
         strategy: agent.strategy ?? REVIEW_STRATEGY,
+        ...(skills.length > 0 ? { skills } : {}),
         // T1.3 — pass the callers digest only when we built one. assemblePrompt
         // omits the section when this is empty/undefined.
         ...(callersDigest ? { callers: callersDigest } : {}),
@@ -399,6 +412,26 @@ export class ReviewRunExecutor {
       return `\n\n${hot.length} of ${changedFiles.length} changed file(s) are in the top 5% most-depended-on (high blast risk) — prioritise their correctness.`;
     } catch {
       return '';
+    }
+  }
+
+  /**
+   * T4 — resolve an agent's linked skills into `PromptSkill[]` (body + trust
+   * tier source), in link order, excluding globally-disabled skills. Best
+   * effort: never fails the run — an unexpected error here just means the
+   * review proceeds without skills.
+   */
+  private async buildSkills(agentId: string, runLog: RunLogger): Promise<PromptSkill[]> {
+    try {
+      const links = await this.agents.linkedSkills(agentId);
+      const enabled = links.filter((l) => l.skill.enabled);
+      if (enabled.length > 0) {
+        runLog.info(`skills: ${enabled.length} enabled skill(s) attached`);
+      }
+      return enabled.map((l) => ({ body: l.skill.body, source: l.skill.source as SkillSource }));
+    } catch (err) {
+      runLog.info(`skills: failed to resolve linked skills — ${(err as Error).message}`);
+      return [];
     }
   }
 
