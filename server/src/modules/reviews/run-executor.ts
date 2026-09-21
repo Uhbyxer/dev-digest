@@ -8,6 +8,7 @@ import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './reposit
 import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { generateIntent } from './intent/service.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -103,6 +104,21 @@ export class ReviewRunExecutor {
       return;
     }
     runLog.info(`Diff ready — ${diff.files.length} changed file(s); starting ${jobs.length} agent run(s)`);
+
+    // Best-effort: derive PR intent ONCE, shared across every agent run in
+    // this fan-out (decision #5, docs/plans/intent-layer.md). Unlike the diff
+    // above (required — no diff, no review possible), a failure here only
+    // logs a warning; the run(s) proceed without intent. Not fed into any
+    // agent's review prompt in this plan (see the plan's "Out of scope").
+    try {
+      await runLog.step(
+        'Deriving PR intent',
+        () => generateIntent(this.container, workspaceId, pull, repo, diff),
+        { kind: 'tool' },
+      );
+    } catch (err) {
+      runLog.info(`Intent derivation skipped — ${(err as Error).message}`);
+    }
 
     for (const { agent, runId } of jobs) {
       const agentStart = Date.now();

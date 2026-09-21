@@ -33,6 +33,7 @@ import type {
   SecretKey,
 } from '@devdigest/shared';
 import { parseUnifiedDiff } from './git/diff-parser.js';
+import type { LinkedDocFetcher } from './linked-doc/index.js';
 
 /**
  * Deterministic MOCK adapters for tests/dev — NO real network. Each mirrors the
@@ -326,5 +327,14 @@ export class MockSecretsProvider implements SecretsProvider {
   constructor(private secrets: Partial<Record<string, string>> = {}) {}
   async get(key: SecretKey): Promise<string | undefined> {
     return this.secrets[key as string];
+  }
+}
+
+// ---------- Mock LinkedDocFetcher ----------
+/** Deterministic mock for the intent layer's linked-spec fetch — NO real network. */
+export class MockLinkedDocFetcher implements LinkedDocFetcher {
+  constructor(private text: string | undefined = undefined) {}
+  async fetchLinkedDoc(_url: string): Promise<{ text: string } | undefined> {
+    return this.text !== undefined ? { text: this.text } : undefined;
   }
 }

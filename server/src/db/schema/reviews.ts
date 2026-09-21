@@ -52,6 +52,11 @@ export const prIntent = pgTable('pr_intent', {
   intent: text('intent').notNull(),
   inScope: jsonb('in_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   outOfScope: jsonb('out_of_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  // Deterministically computed in reviewer-core (never LLM-self-reported) —
+  // 'stated' only when the PR author actually wrote a substantive description;
+  // 'inferred' otherwise. `sources` names which signals fed the derivation.
+  confidence: text('confidence', { enum: ['stated', 'inferred'] }).notNull().default('inferred'),
+  sources: jsonb('sources').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
 });
 
 export const prBrief = pgTable('pr_brief', {

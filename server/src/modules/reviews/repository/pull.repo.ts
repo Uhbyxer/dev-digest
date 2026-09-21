@@ -34,6 +34,18 @@ export async function getPrFiles(
 }
 
 /**
+ * Commit messages for a PR (from the persisted `pr_commits` table) — used by
+ * the intent layer to derive the `commit_messages` signal.
+ */
+export async function getCommitMessages(db: Db, prId: string): Promise<string[]> {
+  const rows = await db
+    .select({ message: t.prCommits.message })
+    .from(t.prCommits)
+    .where(eq(t.prCommits.prId, prId));
+  return rows.map((r) => r.message);
+}
+
+/**
  * Record the commit a review just ran against, so the PR list can derive
  * `reviewed` vs `needs_review` (head moved since the last review) vs `stale`.
  */
@@ -54,15 +66,29 @@ export async function upsertIntent(db: Db, prId: string, intent: Intent): Promis
       intent: intent.intent,
       inScope: intent.in_scope,
       outOfScope: intent.out_of_scope,
+      confidence: intent.confidence,
+      sources: intent.sources,
     })
     .onConflictDoUpdate({
       target: t.prIntent.prId,
-      set: { intent: intent.intent, inScope: intent.in_scope, outOfScope: intent.out_of_scope },
+      set: {
+        intent: intent.intent,
+        inScope: intent.in_scope,
+        outOfScope: intent.out_of_scope,
+        confidence: intent.confidence,
+        sources: intent.sources,
+      },
     });
 }
 
 export async function getIntent(db: Db, prId: string): Promise<Intent | undefined> {
   const [row] = await db.select().from(t.prIntent).where(eq(t.prIntent.prId, prId));
   if (!row) return undefined;
-  return { intent: row.intent, in_scope: row.inScope, out_of_scope: row.outOfScope };
+  return {
+    intent: row.intent,
+    in_scope: row.inScope,
+    out_of_scope: row.outOfScope,
+    confidence: row.confidence as Intent['confidence'],
+    sources: row.sources as Intent['sources'],
+  };
 }

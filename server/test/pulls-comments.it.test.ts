@@ -12,7 +12,7 @@ import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import { MockGitHubClient } from '../src/adapters/mocks.js';
 import * as t from '../src/db/schema.js';
-import type { PrReviewComment } from '@devdigest/shared';
+import type { Intent, PrReviewComment } from '@devdigest/shared';
 
 const hasDocker = await dockerAvailable();
 const d = hasDocker ? describe : describe.skip;
@@ -121,6 +121,40 @@ d('inline PR comments routes (Testcontainers pg)', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(gh.createdComments[0]).toMatchObject({ inReplyTo: 42 });
+  });
+
+  it('GET /pulls/:id/intent returns null when no intent has been generated yet', async () => {
+    const gh = new MockGitHubClient();
+    const app = await buildApp({ config: config(), db: pg.handle.db, overrides: { github: gh } });
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+
+    const res = await app.inject({ method: 'GET', url: `/pulls/${pr.id}/intent` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toBeNull();
+  });
+
+  it('GET /pulls/:id/intent returns the persisted intent, including confidence/sources, once one exists', async () => {
+    const gh = new MockGitHubClient();
+    const app = await buildApp({ config: config(), db: pg.handle.db, overrides: { github: gh } });
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+
+    await pg.handle.db.insert(t.prIntent).values({
+      prId: pr.id,
+      intent: 'Adds rate limiting to public API endpoints.',
+      inScope: ['Add limiter middleware'],
+      outOfScope: ['Per-user rate tiers'],
+      confidence: 'stated',
+      sources: ['title', 'description', 'diff_stats'],
+    });
+
+    const res = await app.inject({ method: 'GET', url: `/pulls/${pr.id}/intent` });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as Intent;
+    expect(body.intent).toBe('Adds rate limiting to public API endpoints.');
+    expect(body.in_scope).toEqual(['Add limiter middleware']);
+    expect(body.out_of_scope).toEqual(['Per-user rate tiers']);
+    expect(body.confidence).toBe('stated');
+    expect(body.sources).toEqual(['title', 'description', 'diff_stats']);
   });
 
   it('POST rejects an empty body as a validation error', async () => {

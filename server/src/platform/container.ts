@@ -29,6 +29,7 @@ import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
+import { fetchLinkedDoc, type LinkedDocFetcher } from '../adapters/linked-doc/index.js';
 
 /**
  * DI container. One per app instance. Holds config, db, the JobRunner,
@@ -51,6 +52,8 @@ export interface ContainerOverrides {
   /** repo-intel T3 adapters — only the indexer pipeline reads these. */
   depgraph?: DepGraph;
   tokenizer?: Tokenizer;
+  /** Intent layer's linked-spec fetch adapter — tests inject a fake, no real network. */
+  linkedDocFetcher?: LinkedDocFetcher;
 }
 
 export class Container {
@@ -76,6 +79,7 @@ export class Container {
   private _depgraph?: DepGraph;
   private _tokenizer?: Tokenizer;
   private _priceBook?: PriceBook;
+  private _linkedDocFetcher?: LinkedDocFetcher;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -129,6 +133,13 @@ export class Container {
     if (this.overrides.tokenizer) return this.overrides.tokenizer;
     this._tokenizer ??= new TiktokenTokenizer();
     return this._tokenizer;
+  }
+
+  /** Linked-spec URL fetcher for the intent layer (best-effort, SSRF-guarded). */
+  linkedDocFetcher(): LinkedDocFetcher {
+    if (this.overrides.linkedDocFetcher) return this.overrides.linkedDocFetcher;
+    this._linkedDocFetcher ??= { fetchLinkedDoc };
+    return this._linkedDocFetcher;
   }
 
   /**

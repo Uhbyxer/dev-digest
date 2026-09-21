@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
+import type { PrMeta, PrDetail, GitHubClient, PrReviewComment, Intent } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import { deriveReviewStatus } from './status.js';
+import { getIntent } from '../reviews/repository/pull.repo.js';
 
 /**
  * F1 — pulls module. PR import via Octokit (list + per-PR detail).
@@ -320,6 +321,17 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
     if (!repo) throw new NotFoundError('Repo not found');
     return { pr, repo };
   }
+
+  // Intent is generated asynchronously during a review run (decision #5/#6,
+  // docs/plans/intent-layer.md), not available at PR-import time — hence a
+  // separate endpoint rather than folding it into GET /pulls/:id. `null`
+  // (not 404) means "not yet analyzed", not an error.
+  app.get('/pulls/:id/intent', { schema: { params: IdParams } }, async (req): Promise<Intent | null> => {
+    const { workspaceId } = await getContext(container, req);
+    const { pr } = await resolvePrAndRepo(req.params.id, workspaceId);
+    const intent = await getIntent(container.db, pr.id);
+    return intent ?? null;
+  });
 
   app.get(
     '/pulls/:id/comments',

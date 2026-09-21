@@ -6,10 +6,31 @@ import { z } from 'zod';
  */
 
 // ---- Intent ----
+/**
+ * `stated` vs `inferred` is computed DETERMINISTICALLY in reviewer-core from
+ * which signals were actually available (e.g. did the PR have a substantive
+ * description) — never self-reported by the LLM. See
+ * reviewer-core/src/intent/confidence.ts.
+ */
+export const IntentConfidence = z.enum(['stated', 'inferred']);
+export type IntentConfidence = z.infer<typeof IntentConfidence>;
+
+export const IntentSource = z.enum([
+  'title',
+  'description',
+  'linked_ticket',
+  'linked_spec',
+  'diff_stats',
+  'commit_messages',
+]);
+export type IntentSource = z.infer<typeof IntentSource>;
+
 export const Intent = z.object({
   intent: z.string(),
   in_scope: z.array(z.string()),
   out_of_scope: z.array(z.string()),
+  confidence: IntentConfidence,
+  sources: z.array(IntentSource),
 });
 export type Intent = z.infer<typeof Intent>;
 
