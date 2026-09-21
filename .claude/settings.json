@@ -10,6 +10,9 @@
       "Bash(curl http://localhost*)",
       "Bash(curl -s http://localhost*)",
       "Bash(curl -s -m * http://localhost*)"
+    ],
+    "deny": [
+      "Bash(git push *)"
     ]
   }
 }
