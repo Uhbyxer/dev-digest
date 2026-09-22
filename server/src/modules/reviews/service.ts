@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { FindingActionKind, RunEventKind, RunTrace } from '@devdigest/shared';
+import type { FindingActionKind, RunEventKind, RunTrace, SmartDiff } from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
@@ -7,6 +7,7 @@ import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
 import { reviewToDto } from './helpers.js';
+import { buildSmartDiff } from './smart-diff/service.js';
 
 // Re-export DTO types + converters for backward-compatible imports from
 // './service.js' (these previously lived here; logic now in ./helpers.ts).
@@ -175,5 +176,38 @@ export class ReviewService {
 
   async getRunTrace(runId: string): Promise<RunTrace | undefined> {
     return this.repo.getRunTrace(runId);
+  }
+
+  /**
+   * Smart Diff: the PR's files grouped by role, with each file's
+   * `finding_lines` drawn from the UNION of findings across every persisted
+   * review for this PR (not just the newest) — matching how the Findings tab
+   * already aggregates, and the only option given multi-agent runs have no
+   * shared batch id to key a "latest" off of. A finding counts regardless of
+   * accept/dismiss state.
+   */
+  async smartDiffForPull(workspaceId: string, prId: string): Promise<SmartDiff> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+
+    const [files, reviews] = await Promise.all([
+      this.repo.getPrFiles(prId),
+      this.repo.reviewsForPull(prId),
+    ]);
+
+    const findingLinesByPath = new Map<string, number[]>();
+    for (const { findings } of reviews) {
+      for (const f of findings) {
+        const list = findingLinesByPath.get(f.file) ?? [];
+        if (!list.includes(f.startLine)) list.push(f.startLine);
+        findingLinesByPath.set(f.file, list);
+      }
+    }
+    for (const lines of findingLinesByPath.values()) lines.sort((a, b) => a - b);
+
+    return buildSmartDiff(
+      files.map((f) => ({ path: f.path, additions: f.additions, deletions: f.deletions })),
+      findingLinesByPath,
+    );
   }
 }

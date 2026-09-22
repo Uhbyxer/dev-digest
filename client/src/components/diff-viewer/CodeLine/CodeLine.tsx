@@ -5,20 +5,28 @@
 import React from "react";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
+import { findingsForLine, type DiffFindingApi } from "../findings";
 import { s, lineRowFor, lineSignFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
+import { FindingLineCard } from "../FindingLineCard";
+import type { FindingRecord } from "../../../lib/types";
 
 export function CodeLine({
   ln,
   path,
   threads,
   commenting,
+  findings,
+  findingApi,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
+  /** This file's findings (all of them) — matched down to this line below. */
+  findings?: FindingRecord[];
+  findingApi?: DiffFindingApi;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
@@ -34,6 +42,7 @@ export function CodeLine({
   const sign = ln.kind === "add" ? "+" : ln.kind === "del" ? "−" : "";
   const target = commenting?.canComment ? commentTargetFor(ln) : null;
   const showAdd = hover && !!target && !composing;
+  const lineFindings = findings ? findingsForLine(ln, findings) : [];
 
   return (
     <div
@@ -78,6 +87,19 @@ export function CodeLine({
           side={target.side}
           onClose={() => setComposing(false)}
         />
+      )}
+
+      {commenting?.showComments && findingApi && lineFindings.length > 0 && (
+        <div style={cs.thread}>
+          {lineFindings.map((f) => (
+            <FindingLineCard
+              key={f.id}
+              finding={f}
+              pending={findingApi.pending.has(f.id)}
+              onAction={(action) => findingApi.onAction(f.id, action)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

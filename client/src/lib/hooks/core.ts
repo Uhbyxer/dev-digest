@@ -15,6 +15,7 @@ import type {
   Repo,
   PrMeta,
   PrDetail,
+  Intent,
   SpecFile,
   IndexStatus,
 } from "../types";
@@ -115,6 +116,15 @@ export function usePullDetail(prId: string | number | null | undefined) {
   return useQuery({
     queryKey: ["pull", prId],
     queryFn: () => api.get<PrDetail>(`/pulls/${prId}`),
+    enabled: prId != null,
+  });
+}
+
+/** PR intent/scope (generated async during a review run — `null` until then). */
+export function useIntent(prId: string | number | null | undefined) {
+  return useQuery({
+    queryKey: ["pr-intent", prId],
+    queryFn: () => api.get<Intent | null>(`/pulls/${prId}/intent`),
     enabled: prId != null,
   });
 }

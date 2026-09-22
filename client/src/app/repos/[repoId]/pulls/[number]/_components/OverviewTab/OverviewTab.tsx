@@ -2,13 +2,15 @@
 
 import React from "react";
 import { SectionLabel } from "@devdigest/ui";
+import { IntentPanel } from "./_components/IntentPanel";
 import { s } from "./styles";
 
 interface OverviewTabProps {
   prBody: string | null | undefined;
+  prId: string | number | null | undefined;
 }
 
-export function OverviewTab({ prBody }: OverviewTabProps) {
+export function OverviewTab({ prBody, prId }: OverviewTabProps) {
   return (
     <>
       {prBody && (
@@ -17,6 +19,7 @@ export function OverviewTab({ prBody }: OverviewTabProps) {
           <div style={s.descriptionBox}>{prBody}</div>
         </section>
       )}
+      <IntentPanel prId={prId} />
     </>
   );
 }

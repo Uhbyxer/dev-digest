@@ -74,3 +74,21 @@ export {
   groundConventionCandidates,
   type ConventionGroundingResult,
 } from './conventions/index.js';
+
+// Intent layer: pure prompt-building, deterministic confidence scoring, and
+// linked-spec URL detection for PR intent/scope derivation. All I/O (the
+// LLM calls, the linked-URL fetch, persistence) lives in server/src/modules.
+export {
+  IntentGenerationResult,
+  QuarantineExtractionResult,
+  INTENT_GENERATION_SCHEMA_NAME,
+  QUARANTINE_EXTRACTION_SCHEMA_NAME,
+  deriveIntentConfidence,
+  type IntentConfidenceSignals,
+  type IntentConfidenceResult,
+  buildIntentPrompt,
+  type IntentSignals,
+  type IntentFileStat,
+  buildQuarantineExtractionPrompt,
+  detectLinkedSpecUrl,
+} from './intent/index.js';

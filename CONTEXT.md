@@ -134,6 +134,33 @@ snapshot would "replay" with, if anything ever replays it. Nothing consumes
 built) — this is a documented gap for whoever builds that consumer, not a
 bug in the current feature.
 
+## Smart Diff
+
+A computed (never persisted) view of a PR's changed files, grouped by **file
+role** instead of GitHub's raw file order, with review findings surfaced
+inline. Recomputed fresh on every request from the PR's current files +
+findings — there is no `SmartDiff` row in the database.
+
+- **File role**: which of five buckets a changed file belongs to —
+  `core | tests | wiring | docs | boilerplate` — decided by a pure,
+  order-sensitive pattern match on the file's path (first matching pattern
+  wins). Not to be confused with a **Finding**'s `category` (e.g.
+  security/performance): role classifies the *file*, category classifies a
+  *finding*. Always say "file role," never "category," when talking about
+  Smart Diff grouping.
+  _Avoid_: category, classification (when role is meant)
+- **Group**: the set of a PR's files sharing one file role, rendered as one
+  collapsible section (docs and boilerplate start collapsed; the rest follow
+  the existing auto-expand-by-size rule). Groups with zero files are omitted
+  rather than shown empty. Files within a group keep their original relative
+  order from GitHub's file list — Smart Diff only buckets and reorders
+  *groups*, never files within one.
+- **Original order**: the alternate, ungrouped view — GitHub's own file
+  order, unchanged. A per-visit toggle, not a persisted preference.
+- A file **"has findings"** if any finding (accepted, dismissed, or neither)
+  is anchored to one of its lines — dismissing a finding mutes its display,
+  it does not remove the file from that count.
+
 ## Test Quality Reviewer
 
 A built-in agent (alongside General/Security/Performance Reviewer) whose

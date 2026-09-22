@@ -15,6 +15,7 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
+import { type DiffFindingApi } from "../findings";
 import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
@@ -30,12 +31,26 @@ function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): Commen
   return out;
 }
 
-export function FileCard({ file, commenting }: { file: PrFile; commenting?: DiffCommentApi }) {
+export function FileCard({
+  file,
+  commenting,
+  findingApi,
+}: {
+  file: PrFile;
+  commenting?: DiffCommentApi;
+  /** Findings threaded into this file's lines (Smart Diff / Original order). */
+  findingApi?: DiffFindingApi;
+}) {
   const t = useTranslations("shell");
   const [open, setOpen] = React.useState(
     (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
   );
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
+  const fileFindings = React.useMemo(
+    () => findingApi?.byPath.get(file.path) ?? [],
+    [findingApi, file.path]
+  );
+  const hasFindings = fileFindings.length > 0;
 
   // Group this file's comments into threads, then split into ones we can anchor
   // to a rendered line vs. "outdated" (GitHub dropped the line / it's not here).
@@ -64,6 +79,20 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
           <span style={s.addText}>+{file.additions}</span>{" "}
           <span style={s.delText}>−{file.deletions}</span>
         </span>
+        {hasFindings && (
+          <span
+            data-testid="finding-dot"
+            title={t("diffViewer.hasFindings")}
+            aria-label={t("diffViewer.hasFindings")}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 99,
+              background: "var(--crit)",
+              flexShrink: 0,
+            }}
+          />
+        )}
         {commentCount > 0 && (
           <span
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-muted)" }}
@@ -85,6 +114,8 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
+                findings={fileFindings}
+                findingApi={findingApi}
               />
             ))
           )}
