@@ -13,6 +13,7 @@ import type {
   ReviewRunResponse,
   RunEvent,
   RunSummary,
+  SmartDiff,
 } from "@devdigest/shared";
 
 // ---- Active (in-flight) runs — server-side source of truth ----
@@ -52,6 +53,18 @@ export function usePrReviews(prId: string | null | undefined) {
   return useQuery({
     queryKey: ["reviews", prId],
     queryFn: () => api.get<ReviewRecord[]>(`/pulls/${prId}/reviews`),
+    enabled: !!prId,
+  });
+}
+
+// ---- Smart Diff: the PR's files grouped by role ----
+/** Files grouped by role (core → tests → wiring → docs → boilerplate) plus
+    finding_lines drawn from every persisted review — used by the Files
+    changed tab. Cached under React Query same as reviews/comments. */
+export function usePrSmartDiff(prId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pr-smart-diff", prId],
+    queryFn: () => api.get<SmartDiff>(`/pulls/${prId}/smart-diff`),
     enabled: !!prId,
   });
 }
