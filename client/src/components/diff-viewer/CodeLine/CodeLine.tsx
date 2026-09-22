@@ -89,7 +89,7 @@ export function CodeLine({
         />
       )}
 
-      {findingApi && lineFindings.length > 0 && (
+      {commenting?.showComments && findingApi && lineFindings.length > 0 && (
         <div style={cs.thread}>
           {lineFindings.map((f) => (
             <FindingLineCard

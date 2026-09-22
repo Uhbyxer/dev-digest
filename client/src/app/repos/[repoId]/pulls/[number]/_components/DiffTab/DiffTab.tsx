@@ -69,6 +69,13 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
     : undefined;
 
   const commentCount = comments?.length ?? 0;
+  // The show/hide toggle controls both GitHub comment threads and inline
+  // finding cards — one visibility switch for everything anchored to a line.
+  const totalFindingsCount = React.useMemo(
+    () => Array.from(findingsByPath.values()).reduce((sum, list) => sum + list.length, 0),
+    [findingsByPath],
+  );
+  const toggleCount = commentCount + totalFindingsCount;
 
   const commenting: DiffCommentApi = {
     comments: comments ?? [],
@@ -96,14 +103,14 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
             <Button kind="ghost" size="sm" onClick={() => setView((v) => (v === "smart" ? "original" : "smart"))}>
               {view === "smart" ? t("smartDiff.originalOrderToggle") : t("smartDiff.smartDiffToggle")}
             </Button>
-            {commentCount > 0 && (
+            {toggleCount > 0 && (
               <Button
                 kind="ghost"
                 size="sm"
                 icon={showComments ? "EyeOff" : "Eye"}
                 onClick={() => setShowComments((v) => !v)}
               >
-                {showComments ? "Hide comments" : "Show comments"} ({commentCount})
+                {showComments ? "Hide comments" : "Show comments"} ({toggleCount})
               </Button>
             )}
           </div>
