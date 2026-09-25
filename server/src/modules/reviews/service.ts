@@ -138,6 +138,55 @@ export class ReviewService {
     return { runs, reviews: [] };
   }
 
+  /**
+   * MCP's blocking counterpart to `runReview`. Creates the same agent_run rows
+   * and calls the SAME executor, but AWAITS it instead of firing-and-forgetting
+   * — so MCP-triggered and UI-triggered reviews run identical code and can
+   * never drift. Returns the freshly-created reviews directly (filtered to
+   * this call's run ids, so a PR with older review history isn't included).
+   */
+  async runReviewBlocking(
+    workspaceId: string,
+    prId: string,
+    targets: AgentRow[],
+    logger?: Logger,
+  ): Promise<ReviewDto[]> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const repo = await this.repo.getRepo(pull.repoId);
+    if (!repo) throw new NotFoundError('Repo not found');
+
+    const runIds: string[] = [];
+    const jobs: { agent: AgentRow; runId: string }[] = [];
+    for (const agent of targets) {
+      const runId = await this.repo.createAgentRun({
+        workspaceId,
+        agentId: agent.id,
+        prId,
+        provider: agent.provider,
+        model: agent.model,
+      });
+      runIds.push(runId);
+      jobs.push({ agent, runId });
+    }
+
+    await this.executor.executeRuns(workspaceId, pull, repo, jobs, logger);
+
+    const rows = await this.repo.reviewsForPull(prId);
+    const names = new Map<string, string>();
+    for (const { review } of rows) {
+      if (review.agentId && !names.has(review.agentId)) {
+        const a = await this.agents.getById(workspaceId, review.agentId);
+        if (a) names.set(review.agentId, a.name);
+      }
+    }
+    return rows
+      .filter(({ review }) => review.runId != null && runIds.includes(review.runId))
+      .map(({ review, findings }) =>
+        reviewToDto(review, findings, review.agentId ? names.get(review.agentId) : null),
+      );
+  }
+
   private publish(runId: string, kind: RunEventKind, msg: string, data?: unknown) {
     return this.container.runBus.publish(runId, kind, msg, data);
   }

@@ -62,6 +62,17 @@ export class AgentsRepository {
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.enabled, true)));
   }
 
+  /**
+   * Case-insensitive lookup by name within a workspace. `name` has no DB
+   * uniqueness constraint, so this can return more than one match — callers
+   * (MCP's agent-name resolver) decide how to handle 0 / 1 / many.
+   */
+  async findByName(workspaceId: string, name: string): Promise<AgentRow[]> {
+    const rows = await this.list(workspaceId);
+    const lower = name.toLowerCase();
+    return rows.filter((r) => r.name.toLowerCase() === lower);
+  }
+
   async getById(workspaceId: string, id: string): Promise<AgentRow | undefined> {
     const [row] = await this.db
       .select()

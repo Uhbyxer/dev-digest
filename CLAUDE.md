@@ -1,6 +1,6 @@
 # dev-digest — CLAUDE.md
 
-Local-first AI pull-request review. Not a monorepo workspace — 4 independent
+Local-first AI pull-request review. Not a monorepo workspace — 5 independent
 packages, each with its own `package.json`/lockfile; shared code goes through
 tsconfig path aliases, not published modules.
 
@@ -15,6 +15,7 @@ tsconfig path aliases, not published modules.
 | `client/`        | `@devdigest/web`            | Next.js 15 web app (the studio)       | 3000 |
 | `reviewer-core/` | `@devdigest/reviewer-core`  | Pure review engine                    | —    |
 | `e2e/`           | `@devdigest/e2e`            | Deterministic browser e2e             | —    |
+| `mcp/`           | `@devdigest/mcp`            | MCP server (stdio) — review from an agent session | —    |
 
 ## Commands
 - `./scripts/dev.sh` — Postgres + migrations + seed + API + web, from zero
