@@ -143,6 +143,31 @@ d('run_review (Testcontainers pg)', () => {
     expect(result.text).toContain('list_agents');
   });
 
+  it('a run that fails (no key configured for the agent provider) surfaces an error, not a silent empty result', async () => {
+    const { repo, pr } = await setupRepoAndPr(pg.handle.db, ctx.workspaceId, {
+      repoName: 'run-review-failed',
+    });
+    // 'anthropic' has no override in this describe's context (only 'openai'
+    // does) — container.llm('anthropic') throws ConfigError, so the executor
+    // records this run as failed and persists no review.
+    await new AgentsService(ctx.container).create(ctx.workspaceId, {
+      name: 'Unconfigured',
+      provider: 'anthropic',
+      model: 'claude-x',
+      system_prompt: 'p',
+    });
+
+    const result = await runReviewTool(ctx.container, ctx.workspaceId, {
+      repo: repo.fullName,
+      pr_number: pr.number,
+      agent_name: 'Unconfigured',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain('Unconfigured');
+    expect(result.text).not.toBe('No findings recorded for this PR yet.');
+  });
+
   it('an ambiguous agent name (case-insensitive match on 2+ agents) returns a specific error', async () => {
     const { repo, pr } = await setupRepoAndPr(pg.handle.db, ctx.workspaceId, {
       repoName: 'run-review-ambiguous',

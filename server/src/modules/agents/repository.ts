@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { CiFailOn, Provider, ReviewStrategy } from '@devdigest/shared';
@@ -68,9 +68,15 @@ export class AgentsRepository {
    * (MCP's agent-name resolver) decide how to handle 0 / 1 / many.
    */
   async findByName(workspaceId: string, name: string): Promise<AgentRow[]> {
-    const rows = await this.list(workspaceId);
-    const lower = name.toLowerCase();
-    return rows.filter((r) => r.name.toLowerCase() === lower);
+    return this.db
+      .select()
+      .from(t.agents)
+      .where(
+        and(
+          eq(t.agents.workspaceId, workspaceId),
+          sql`lower(${t.agents.name}) = lower(${name})`,
+        ),
+      );
   }
 
   async getById(workspaceId: string, id: string): Promise<AgentRow | undefined> {

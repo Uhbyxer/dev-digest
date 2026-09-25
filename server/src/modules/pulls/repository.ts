@@ -12,11 +12,28 @@ import type { PullRow } from '../../db/rows.js';
 export class PullsRepository {
   constructor(private db: Db) {}
 
-  async findByRepoAndNumber(repoId: string, number: number): Promise<PullRow | undefined> {
+  /**
+   * `workspaceId` is redundant with `repoId` today (every caller resolves
+   * `repoId` via a workspace-scoped `RepoRepository.findByFullName` first),
+   * but scoping the query explicitly — like every other lookup in this
+   * codebase — means a future caller that obtains `repoId` some other way
+   * can't accidentally read a PR across workspaces.
+   */
+  async findByRepoAndNumber(
+    workspaceId: string,
+    repoId: string,
+    number: number,
+  ): Promise<PullRow | undefined> {
     const [row] = await this.db
       .select()
       .from(t.pullRequests)
-      .where(and(eq(t.pullRequests.repoId, repoId), eq(t.pullRequests.number, number)));
+      .where(
+        and(
+          eq(t.pullRequests.workspaceId, workspaceId),
+          eq(t.pullRequests.repoId, repoId),
+          eq(t.pullRequests.number, number),
+        ),
+      );
     return row;
   }
 }

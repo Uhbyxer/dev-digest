@@ -4,11 +4,16 @@ import { errorResult, type ToolResult } from './types.js';
 
 /** Turn a non-`ok` repo/PR resolution into the specific missing-step error text. */
 export function repoAndPrError(
-  result: Extract<RepoAndPrResult, { kind: 'repo_not_found' | 'pr_not_imported' }>,
+  result: Extract<RepoAndPrResult, { kind: 'repo_not_found' | 'pr_not_imported' | 'pr_number_required' }>,
 ): ToolResult {
   if (result.kind === 'repo_not_found') {
     return errorResult(
       `Repo "${result.fullName}" is not added to this dev-digest workspace. Add it in the studio first.`,
+    );
+  }
+  if (result.kind === 'pr_number_required') {
+    return errorResult(
+      `pr_number is required when repo ("${result.repoInput}") is given as "owner/name" rather than a full PR URL.`,
     );
   }
   return errorResult(

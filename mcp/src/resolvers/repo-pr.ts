@@ -12,9 +12,13 @@ import type { PullRow } from '@devdigest/server/db/rows.js';
 export type RepoAndPrResult =
   | { kind: 'repo_not_found'; fullName: string }
   | { kind: 'pr_not_imported'; fullName: string; number: number }
+  | { kind: 'pr_number_required'; repoInput: string }
   | { kind: 'ok'; repo: RepoRow; pull: PullRow };
 
-const PR_URL_RE = /github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)/i;
+// Anchored end-to-end (optional scheme, optional trailing path/query/hash) so
+// this only matches when `repoInput` IS a GitHub PR URL, never when a PR URL
+// merely appears somewhere inside a longer string.
+const PR_URL_RE = /^(?:https?:\/\/)?github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)(?:[/?#].*)?$/i;
 
 /** Parse `owner/name` (+ optional number), or a full GitHub PR URL. */
 export function parseRepoInput(
@@ -48,10 +52,11 @@ export async function resolveRepoAndPr(
   if (!repo) return { kind: 'repo_not_found', fullName };
 
   if (parsed.number === undefined) {
-    throw new Error('pr_number is required when repo is given as "owner/name"');
+    return { kind: 'pr_number_required', repoInput };
   }
 
   const pull = await new PullsRepository(container.db).findByRepoAndNumber(
+    workspaceId,
     repo.id,
     parsed.number,
   );

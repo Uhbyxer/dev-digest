@@ -5,7 +5,7 @@ import { resolveRepoAndPr } from '../resolvers/repo-pr.js';
 import { resolveAgentByName } from '../resolvers/agent.js';
 import { formatReviews } from '../format.js';
 import { agentLookupError, repoAndPrError } from './errors.js';
-import { errorResult, type ToolResult } from './types.js';
+import { errorResult, guard, type ToolResult } from './types.js';
 
 export interface RunReviewArgs {
   repo: string;
@@ -18,23 +18,25 @@ export async function runReviewTool(
   workspaceId: string,
   args: RunReviewArgs,
 ): Promise<ToolResult> {
-  const resolved = await resolveRepoAndPr(container, workspaceId, args.repo, args.pr_number);
-  if (resolved.kind !== 'ok') return repoAndPrError(resolved);
+  return guard(async () => {
+    const resolved = await resolveRepoAndPr(container, workspaceId, args.repo, args.pr_number);
+    if (resolved.kind !== 'ok') return repoAndPrError(resolved);
 
-  const reviewService = new ReviewService(container);
+    const reviewService = new ReviewService(container);
 
-  let targets: AgentRow[];
-  if (args.agent_name) {
-    const agent = await resolveAgentByName(container, workspaceId, args.agent_name);
-    if (agent.kind !== 'ok') return agentLookupError(agent);
-    targets = [agent.agent];
-  } else {
-    targets = await reviewService.resolveTargets(workspaceId, { all: true });
-    if (targets.length === 0) {
-      return errorResult('No enabled agents configured in this workspace. Enable one in the studio first.');
+    let targets: AgentRow[];
+    if (args.agent_name) {
+      const agent = await resolveAgentByName(container, workspaceId, args.agent_name);
+      if (agent.kind !== 'ok') return agentLookupError(agent);
+      targets = [agent.agent];
+    } else {
+      targets = await reviewService.resolveTargets(workspaceId, { all: true });
+      if (targets.length === 0) {
+        return errorResult('No enabled agents configured in this workspace. Enable one in the studio first.');
+      }
     }
-  }
 
-  const reviews = await reviewService.runReviewBlocking(workspaceId, resolved.pull.id, targets);
-  return { text: formatReviews(reviews) };
+    const reviews = await reviewService.runReviewBlocking(workspaceId, resolved.pull.id, targets);
+    return { text: formatReviews(reviews) };
+  });
 }
