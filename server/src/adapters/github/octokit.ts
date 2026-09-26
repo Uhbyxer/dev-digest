@@ -11,6 +11,7 @@ import type {
   OpenPrPayload,
   CommitFilesPayload,
   IssueMeta,
+  RecentPrForFile,
 } from '@devdigest/shared';
 import { withRetry, withTimeout } from '../../platform/resilience.js';
 
@@ -117,6 +118,48 @@ export class OctokitGitHubClient implements GitHubClient {
             })),
             linked_issue: linkedIssue,
           };
+        })(),
+        TIMEOUT,
+      ),
+    );
+  }
+
+  /**
+   * `path`'s `commitLimit` most recent commits, each resolved to its merged PR
+   * via GitHub's "list PRs associated with commit" endpoint. Commits with no
+   * merged PR (still open, or a direct push) are skipped, not surfaced as
+   * `null` entries — Prior-PRs history only cares about merged context.
+   */
+  async listRecentPrsForFile(
+    repo: RepoRef,
+    path: string,
+    commitLimit: number,
+  ): Promise<RecentPrForFile[]> {
+    return withRetry(() =>
+      withTimeout(
+        (async () => {
+          const { data: commits } = await this.octokit.rest.repos.listCommits({
+            owner: repo.owner,
+            repo: repo.name,
+            path,
+            per_page: commitLimit,
+          });
+
+          const out: RecentPrForFile[] = [];
+          for (const commit of commits) {
+            const { data: prs } = await this.octokit.rest.repos.listPullRequestsAssociatedWithCommit(
+              { owner: repo.owner, repo: repo.name, commit_sha: commit.sha },
+            );
+            const merged = prs.find((pr) => pr.merged_at != null);
+            if (!merged) continue;
+            out.push({
+              pr_number: merged.number,
+              title: merged.title,
+              merged_at: merged.merged_at,
+              author: merged.user?.login ?? 'unknown',
+            });
+          }
+          return out;
         })(),
         TIMEOUT,
       ),

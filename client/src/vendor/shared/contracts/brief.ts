@@ -61,6 +61,10 @@ export const BlastRadius = z.object({
   changed_symbols: z.array(ChangedSymbol),
   downstream: z.array(DownstreamImpact),
   summary: z.string(),
+  /** Passed through unchanged from repo-intel's `BlastResult` (T1 ripgrep
+   *  fallback / no persistent index yet vs T3 persistent-index path). */
+  degraded: z.boolean().optional(),
+  reason: z.string().optional(),
 });
 export type BlastRadius = z.infer<typeof BlastRadius>;
 

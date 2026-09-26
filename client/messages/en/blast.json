@@ -11,8 +11,14 @@
   },
   "callerCount": "{count} callers",
   "noDownstream": "{count} changed symbol(s), no downstream callers found.",
+  "noCallers": "No callers found.",
   "graph": {
     "empty": "No downstream callers to graph.",
     "ariaLabel": "Blast radius graph"
-  }
+  },
+  "degraded": {
+    "title": "Index incomplete",
+    "body": "This map is based on partial or fallback data and shouldn't be fully trusted."
+  },
+  "resync": "Resync"
 }

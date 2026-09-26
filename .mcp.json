@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "devdigest": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "cd /Users/tarasg/Documents/repo/dev-digest/mcp && exec ./node_modules/.bin/tsx src/index.ts"
+      ]
+    }
+  }
+}

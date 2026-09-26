@@ -17,6 +17,7 @@ import type {
   OpenPrPayload,
   CommitFilesPayload,
   IssueMeta,
+  RecentPrForFile,
   GitClient,
   CloneOptions,
   UnifiedDiff,
@@ -126,6 +127,8 @@ export interface MockGitHubOptions {
   login?: string;
   /** Existing inline review comments returned by listReviewComments. */
   comments?: PrReviewComment[];
+  /** Keyed by file path; `listRecentPrsForFile` returns `[]` for an unlisted path. */
+  recentPrsForFile?: Record<string, RecentPrForFile[]>;
 }
 
 export class MockGitHubClient implements GitHubClient {
@@ -237,6 +240,14 @@ export class MockGitHubClient implements GitHubClient {
 
   async currentLogin(): Promise<string> {
     return this.opts.login ?? 'mock-user';
+  }
+
+  async listRecentPrsForFile(
+    _repo: RepoRef,
+    path: string,
+    _commitLimit: number,
+  ): Promise<RecentPrForFile[]> {
+    return this.opts.recentPrsForFile?.[path] ?? [];
   }
 }
 

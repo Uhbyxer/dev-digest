@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { CiFailOn, Provider, ReviewStrategy } from '@devdigest/shared';
@@ -60,6 +60,23 @@ export class AgentsRepository {
       .select()
       .from(t.agents)
       .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.enabled, true)));
+  }
+
+  /**
+   * Case-insensitive lookup by name within a workspace. `name` has no DB
+   * uniqueness constraint, so this can return more than one match — callers
+   * (MCP's agent-name resolver) decide how to handle 0 / 1 / many.
+   */
+  async findByName(workspaceId: string, name: string): Promise<AgentRow[]> {
+    return this.db
+      .select()
+      .from(t.agents)
+      .where(
+        and(
+          eq(t.agents.workspaceId, workspaceId),
+          sql`lower(${t.agents.name}) = lower(${name})`,
+        ),
+      );
   }
 
   async getById(workspaceId: string, id: string): Promise<AgentRow | undefined> {

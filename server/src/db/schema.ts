@@ -25,6 +25,7 @@ export * from './schema/ci';
 export * from './schema/runs';
 export * from './schema/ops';
 export * from './schema/repo-intel';
+export * from './schema/pr-history';
 
 import { users, workspaces, workspaceMembers, settings } from './schema/core';
 import { repos } from './schema/repos';
@@ -45,6 +46,7 @@ import {
   fileRank,
   repoMapCache,
 } from './schema/repo-intel';
+import { prHistoryCache } from './schema/pr-history';
 
 /** Convenience: the full schema object for drizzle() client typing. */
 export const schema = {
@@ -89,4 +91,5 @@ export const schema = {
   fileFacts,
   fileRank,
   repoMapCache,
+  prHistoryCache,
 };

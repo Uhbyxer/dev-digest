@@ -1,7 +1,8 @@
 import type { Container } from '../../platform/container.js';
 import type { FindingActionKind, RunEventKind, RunTrace, SmartDiff } from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
-import type { AgentRow } from '../../db/rows.js';
+import type { AgentRow, PullRow } from '../../db/rows.js';
+import * as schema from '../../db/schema.js';
 import { ReviewRepository } from './repository.js';
 import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
@@ -107,15 +108,83 @@ export class ReviewService {
     targets: AgentRow[],
     logger?: Logger,
   ): Promise<{ runs: { run_id: string; agent_id: string; agent_name: string }[]; reviews: ReviewDto[] }> {
+    const { pull, repo, jobs } = await this.createRunJobs(workspaceId, prId, targets);
+    const runs = jobs.map(({ agent, runId }) => ({
+      run_id: runId,
+      agent_id: agent.id,
+      agent_name: agent.name,
+    }));
+
+    // Fire-and-forget: the HTTP response returns now with the runIds; reviews
+    // are persisted as each agent finishes and the client refetches on SSE done.
+    void this.executor.executeRuns(workspaceId, pull, repo, jobs, logger).catch((err) => {
+      logger?.error({ prId, err: (err as Error).message }, 'review: background execution crashed');
+    });
+
+    return { runs, reviews: [] };
+  }
+
+  /**
+   * MCP's blocking counterpart to `runReview`. Creates the same agent_run rows
+   * via the SAME `createRunJobs` helper and calls the SAME executor, but
+   * AWAITS it instead of firing-and-forgetting — so MCP-triggered and
+   * UI-triggered reviews run identical code and can never drift. Returns the
+   * freshly-created reviews directly (filtered to this call's run ids, so a
+   * PR with older review history isn't included).
+   *
+   * `executeRuns` isolates per-agent failures (and a total pre-work failure,
+   * e.g. diff load) internally — it never rejects, it just leaves the failed
+   * run(s) with no review row. Silently returning fewer reviews than targets
+   * requested would read as "clean PR" to a caller, so any run that didn't
+   * produce a review is surfaced as a thrown error instead, quoting each
+   * failed agent's recorded error.
+   */
+  async runReviewBlocking(
+    workspaceId: string,
+    prId: string,
+    targets: AgentRow[],
+    logger?: Logger,
+  ): Promise<ReviewDto[]> {
+    const { pull, repo, jobs } = await this.createRunJobs(workspaceId, prId, targets);
+    await this.executor.executeRuns(workspaceId, pull, repo, jobs, logger);
+
+    const runIds = jobs.map((j) => j.runId);
+    const dtos = await this.dtosForRunIds(workspaceId, prId, runIds);
+
+    if (dtos.length < jobs.length) {
+      const produced = new Set(dtos.map((d) => d.run_id));
+      const missing = jobs.filter((j) => !produced.has(j.runId));
+      const runsById = new Map(
+        (await this.repo.listRunsForPull(workspaceId, prId)).map((r) => [r.run_id, r]),
+      );
+      const detail = missing
+        .map((j) => `${j.agent.name}: ${runsById.get(j.runId)?.error ?? 'no result recorded'}`)
+        .join('; ');
+      throw new AppError('review_run_failed', `One or more agent runs failed: ${detail}`, 502);
+    }
+
+    return dtos;
+  }
+
+  /**
+   * Shared setup for `runReview` / `runReviewBlocking`: resolve the pull +
+   * repo and create one `agent_runs` row (status='running') per target agent
+   * up front, so a runId exists before the (slow) executor starts.
+   */
+  private async createRunJobs(
+    workspaceId: string,
+    prId: string,
+    targets: AgentRow[],
+  ): Promise<{
+    pull: PullRow;
+    repo: typeof schema.repos.$inferSelect;
+    jobs: { agent: AgentRow; runId: string }[];
+  }> {
     const pull = await this.repo.getPull(workspaceId, prId);
     if (!pull) throw new NotFoundError('Pull request not found');
     const repo = await this.repo.getRepo(pull.repoId);
     if (!repo) throw new NotFoundError('Repo not found');
 
-    // Create the agent_run rows up front so a runId is available IMMEDIATELY —
-    // the client persists these in global state and subscribes to the SSE
-    // stream. The actual (slow) review runs in the background below.
-    const runs: { run_id: string; agent_id: string; agent_name: string }[] = [];
     const jobs: { agent: AgentRow; runId: string }[] = [];
     for (const agent of targets) {
       const runId = await this.repo.createAgentRun({
@@ -125,17 +194,19 @@ export class ReviewService {
         provider: agent.provider,
         model: agent.model,
       });
-      runs.push({ run_id: runId, agent_id: agent.id, agent_name: agent.name });
       jobs.push({ agent, runId });
     }
+    return { pull, repo, jobs };
+  }
 
-    // Fire-and-forget: the HTTP response returns now with the runIds; reviews
-    // are persisted as each agent finishes and the client refetches on SSE done.
-    void this.executor.executeRuns(workspaceId, pull, repo, jobs, logger).catch((err) => {
-      logger?.error({ prId, err: (err as Error).message }, 'review: background execution crashed');
-    });
-
-    return { runs, reviews: [] };
+  /** DTOs for reviews whose `run_id` is one of `runIds` (this call's own runs). */
+  private async dtosForRunIds(
+    workspaceId: string,
+    prId: string,
+    runIds: string[],
+  ): Promise<ReviewDto[]> {
+    const dtos = await this.reviewsForPull(workspaceId, prId);
+    return dtos.filter((d) => d.run_id != null && runIds.includes(d.run_id));
   }
 
   private publish(runId: string, kind: RunEventKind, msg: string, data?: unknown) {
