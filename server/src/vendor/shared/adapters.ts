@@ -140,9 +140,24 @@ export interface CommitFilesPayload {
   files: CommitFile[];
 }
 
+/** A merged PR resolved from one of `path`'s recent commits. */
+export interface RecentPrForFile {
+  pr_number: number;
+  title: string;
+  merged_at: string | null;
+  author: string;
+}
+
 export interface GitHubClient {
   listPullRequests(repo: RepoRef): Promise<PrMeta[]>;
   getPullRequest(repo: RepoRef, n: number): Promise<PrDetail>;
+  /**
+   * Walk `path`'s `commitLimit` most recent commits and resolve each to its
+   * merged PR (skipping commits with no merged PR, e.g. still-open or
+   * direct-push). Used by the Prior-PRs history panel — capped per-call to
+   * control GitHub API cost.
+   */
+  listRecentPrsForFile(repo: RepoRef, path: string, commitLimit: number): Promise<RecentPrForFile[]>;
   postReview(repo: RepoRef, n: number, review: GitHubReviewPayload): Promise<{ id: string }>;
   /** List inline review comments on a PR (for the "Files changed" tab). */
   listReviewComments(repo: RepoRef, n: number): Promise<PrReviewComment[]>;

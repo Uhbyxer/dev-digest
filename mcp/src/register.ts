@@ -81,12 +81,15 @@ export function registerTools(server: McpServer, ctx: McpContext): void {
   server.registerTool(
     'get_blast_radius',
     {
-      description: "Get a change's blast radius (callers/impacted endpoints). Not implemented yet — returns a stub.",
+      description:
+        "Get a change's blast radius: for each symbol changed in the PR's diff, who calls it and which HTTP endpoints/cron jobs are reachable from those callers.",
       inputSchema: {
         repo: z.string().describe(REPO_DESCRIPTION),
-        pr_number: z.number().int().optional(),
-        files: z.array(z.string()).optional(),
+        pr_number: z.number().int().optional().describe('PR number (required unless repo is a full PR URL)'),
       },
+      // First tool in this package to set annotations — a pure read with no
+      // side effects, so MCP clients can safely auto-approve it.
+      annotations: { readOnlyHint: true },
     },
     async (args) => toCallResult(await getBlastRadiusTool(container, workspaceId, args)),
   );

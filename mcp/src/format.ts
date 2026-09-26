@@ -1,4 +1,27 @@
 import type { ReviewDto } from '@devdigest/server/modules/reviews/helpers.js';
+import type { BlastRadius } from '@devdigest/shared';
+
+/** Compact text rendering for get_blast_radius — never raw JSON. */
+export function formatBlastRadius(blast: BlastRadius): string {
+  const lines = [blast.summary];
+  if (blast.degraded) {
+    lines.push(`(degraded${blast.reason ? `: ${blast.reason}` : ''} — this map may be based on partial data)`);
+  }
+  if (blast.downstream.length === 0) return lines.join('\n');
+
+  for (const d of blast.downstream) {
+    lines.push('');
+    lines.push(`## ${d.symbol}`);
+    if (d.callers.length === 0) {
+      lines.push('No callers found.');
+    } else {
+      for (const c of d.callers) lines.push(`- ${c.name} — ${c.file}:${c.line}`);
+    }
+    if (d.endpoints_affected.length > 0) lines.push(`Endpoints: ${d.endpoints_affected.join(', ')}`);
+    if (d.crons_affected.length > 0) lines.push(`Crons: ${d.crons_affected.join(', ')}`);
+  }
+  return lines.join('\n');
+}
 
 /** Compact text rendering for run_review / get_findings — never raw JSON. */
 export function formatReviews(reviews: ReviewDto[]): string {
