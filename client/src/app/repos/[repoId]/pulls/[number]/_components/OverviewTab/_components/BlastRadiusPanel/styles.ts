@@ -57,6 +57,25 @@ export const s = {
     justifyContent: "space-between",
     fontSize: 13,
   } satisfies CSSProperties,
+  collapseToggle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    color: "var(--text-primary)",
+  } satisfies CSSProperties,
+  toggleRow: {
+    display: "flex",
+    gap: 6,
+    marginTop: 12,
+  } satisfies CSSProperties,
+  graphScroll: {
+    overflowX: "auto",
+    marginTop: 16,
+  } satisfies CSSProperties,
   callerCount: {
     fontSize: 12,
     color: "var(--text-muted)",

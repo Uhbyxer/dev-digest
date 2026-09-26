@@ -3,10 +3,13 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
-import { SectionLabel, Badge, MonoLink, Button, Chip } from "@devdigest/ui";
+import { SectionLabel, Badge, Button, Chip } from "@devdigest/ui";
 import { useBlastRadius, useResyncRepoIntel, useRepoIntelStatus } from "@/lib/hooks";
-import { githubBlobUrl } from "@/lib/github-urls";
+import { BlastTree } from "./BlastTree";
+import { BlastGraph } from "./BlastGraph";
 import { s } from "./styles";
+
+type ViewMode = "tree" | "graph";
 
 interface BlastRadiusPanelProps {
   prId: string | number | null | undefined;
@@ -25,10 +28,10 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 /**
- * Baseline (plain-list) Blast Radius panel — the "minimum acceptable" layout
- * from issue #32's mockups: stat row + flat caller list per changed symbol.
- * The tree/graph toggle is an explicit stretch target in that spec and is not
- * implemented here.
+ * Blast Radius panel: stat row + a Tree/Graph toggle over the same downstream
+ * data (user story 12) — Tree is the "minimum acceptable" layout from issue
+ * #32's mockups (expandable/collapsible per changed symbol, user story 11);
+ * Graph is a hand-rolled inline SVG node-link view of the same data.
  */
 export function BlastRadiusPanel({ prId, repoId, repoFullName, headSha }: BlastRadiusPanelProps) {
   const t = useTranslations("blast");
@@ -36,6 +39,7 @@ export function BlastRadiusPanel({ prId, repoId, repoFullName, headSha }: BlastR
   const qc = useQueryClient();
   const { data: blast } = useBlastRadius(prId);
   const resync = useResyncRepoIntel(repoId);
+  const [view, setView] = React.useState<ViewMode>("tree");
 
   // A resync only *enqueues* a reindex job (202) — polling the index state
   // until `lastIndexedSha` actually advances (repo-intel.ts's own completion
@@ -109,56 +113,21 @@ export function BlastRadiusPanel({ prId, repoId, repoFullName, headSha }: BlastR
       {!hasAnyCallers ? (
         <p style={s.emptyLine}>{t("noDownstream", { count: blast.changed_symbols.length })}</p>
       ) : (
-        <div style={s.symbolList}>
-          {blast.downstream.map((d, i) => {
-            // `symbol` alone isn't unique — the same method name can be
-            // declared in several changed files/classes (e.g. two
-            // `listPullRequests` on different clients). `downstream[i]`
-            // corresponds 1:1 to `changed_symbols[i]` (the mapper builds both
-            // from the same ordered list), so pull the file from there to
-            // disambiguate and to key the group uniquely.
-            const declFile = blast.changed_symbols[i]?.file;
-            return (
-              <div key={`${d.symbol}-${declFile ?? i}`} style={s.symbolGroup}>
-                <div style={s.symbolHeading}>
-                  <span className="mono">
-                    {d.symbol}
-                    {declFile && <span style={s.declFile}> — {declFile}</span>}
-                  </span>
-                  <span style={s.callerCount}>{t("callerCount", { count: d.callers.length })}</span>
-                </div>
-                {d.callers.length === 0 ? (
-                  <p style={s.emptyLine}>{t("noCallers")}</p>
-                ) : (
-                  <ul style={s.list}>
-                    {d.callers.map((c, ci) => {
-                      const label = `${c.name} — ${c.file}:${c.line}`;
-                      return (
-                        <li key={ci}>
-                          {repoFullName && headSha ? (
-                            <MonoLink href={githubBlobUrl(repoFullName, headSha, c.file, c.line)}>{label}</MonoLink>
-                          ) : (
-                            <span className="mono">{label}</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                {(d.endpoints_affected.length > 0 || d.crons_affected.length > 0) && (
-                  <div style={s.chips}>
-                    {d.endpoints_affected.map((e) => (
-                      <Chip key={`e-${e}`}>{e}</Chip>
-                    ))}
-                    {d.crons_affected.map((c) => (
-                      <Chip key={`c-${c}`}>{c}</Chip>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <div style={s.toggleRow}>
+            <Chip active={view === "tree"} icon="ListChecks" onClick={() => setView("tree")}>
+              {t("view.tree")}
+            </Chip>
+            <Chip active={view === "graph"} icon="Workflow" onClick={() => setView("graph")}>
+              {t("view.graph")}
+            </Chip>
+          </div>
+          {view === "tree" ? (
+            <BlastTree blast={blast} repoFullName={repoFullName} headSha={headSha} />
+          ) : (
+            <BlastGraph blast={blast} />
+          )}
+        </>
       )}
 
       <p style={s.summary}>{blast.summary}</p>

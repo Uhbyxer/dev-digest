@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
 import blastMessages from "../../../../../../../../../../messages/en/blast.json";
@@ -139,6 +139,34 @@ describe("BlastRadiusPanel", () => {
     expect(screen.getByText("seed — src/db/seed.ts:8")).toBeInTheDocument();
     expect(screen.getByText(/src\/adapters\/github\/octokit\.ts/)).toBeInTheDocument();
     expect(screen.getByText(/src\/adapters\/mocks\.ts/)).toBeInTheDocument();
+  });
+
+  it("collapses and re-expands a symbol group's caller list via its heading toggle", async () => {
+    mockFetchOnce(BASE_BLAST);
+    renderPanel();
+
+    const heading = await screen.findByText("foo");
+    expect(screen.getByText("handler — src/caller.ts:12")).toBeInTheDocument();
+
+    fireEvent.click(heading.closest("button")!);
+    expect(screen.queryByText("handler — src/caller.ts:12")).not.toBeInTheDocument();
+
+    fireEvent.click(heading.closest("button")!);
+    expect(screen.getByText("handler — src/caller.ts:12")).toBeInTheDocument();
+  });
+
+  it("switches to the Graph view and renders an accessible SVG node-link graph of the same data", async () => {
+    mockFetchOnce(BASE_BLAST);
+    renderPanel();
+
+    await screen.findByText("foo");
+    fireEvent.click(screen.getByText("graph"));
+
+    const svg = screen.getByRole("img", { name: "Blast radius graph" });
+    expect(svg).toBeInTheDocument();
+    expect(svg.tagName.toLowerCase()).toBe("svg");
+    // Tree-only content should no longer be rendered.
+    expect(screen.queryByText("handler — src/caller.ts:12")).not.toBeInTheDocument();
   });
 
   it("renders the degraded/index-incomplete indicator with a reason and a resync action", async () => {
