@@ -111,6 +111,36 @@ describe("BlastRadiusPanel", () => {
     expect(await screen.findByText("1 changed symbol(s), no downstream callers found.")).toBeInTheDocument();
   });
 
+  it("disambiguates two changed symbols that share a bare name across different files", async () => {
+    mockFetchOnce({
+      ...BASE_BLAST,
+      changed_symbols: [
+        { name: "listPullRequests", file: "src/adapters/github/octokit.ts", kind: "method" },
+        { name: "listPullRequests", file: "src/adapters/mocks.ts", kind: "method" },
+      ],
+      downstream: [
+        {
+          symbol: "listPullRequests",
+          callers: [{ name: "importPulls", file: "src/pulls/routes.ts", line: 5 }],
+          endpoints_affected: [],
+          crons_affected: [],
+        },
+        {
+          symbol: "listPullRequests",
+          callers: [{ name: "seed", file: "src/db/seed.ts", line: 8 }],
+          endpoints_affected: [],
+          crons_affected: [],
+        },
+      ],
+    });
+    renderPanel();
+
+    await screen.findByText("importPulls — src/pulls/routes.ts:5");
+    expect(screen.getByText("seed — src/db/seed.ts:8")).toBeInTheDocument();
+    expect(screen.getByText(/src\/adapters\/github\/octokit\.ts/)).toBeInTheDocument();
+    expect(screen.getByText(/src\/adapters\/mocks\.ts/)).toBeInTheDocument();
+  });
+
   it("renders the degraded/index-incomplete indicator with a reason and a resync action", async () => {
     mockFetchOnce({ ...BASE_BLAST, degraded: true, reason: "no_data" });
     renderPanel();

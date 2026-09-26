@@ -61,6 +61,10 @@ export const s = {
     fontSize: 12,
     color: "var(--text-muted)",
   } satisfies CSSProperties,
+  declFile: {
+    fontWeight: 400,
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
   list: {
     margin: "8px 0 0",
     paddingLeft: 18,
