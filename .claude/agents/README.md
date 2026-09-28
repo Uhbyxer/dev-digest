@@ -1,5 +1,22 @@
 # Agents map
 
+## Workflow (Spec Driven Development)
+
+```
+specreator → (you approve spec) → implementation-planner → (you approve plan)
+  → /run-plan <plan>:
+      implementer (per module, parallel worktrees)
+      → plan-verifier (fast, no test runs)   → fix gaps
+      → architecture-reviewer ∥ test-writer
+      → code-review / pr-self-review (bugs, security)
+      → doc-writer (optional)
+```
+
+Run `specreator` and `implementation-planner` as the main agent (`claude --agent <name>`)
+so they can ask you questions directly. Token discipline: implementer runs only targeted
+tests + one typecheck per module; test-writer owns the full run; skills load once per
+session. Tests trace to spec `AC-n` IDs.
+
 Seven-agent set for dev-digest work, built around the core two-stage
 pipeline **implementation-planner → implementer**, plus a standalone **researcher**. Four
 more agents round out the pipeline around those: **test-writer** and
@@ -14,14 +31,14 @@ not a copy.
 
 | Agent | File | Model | Tools | Role |
 |---|---|---|---|---|
-| [implementation-planner](implementation-planner.md) | `implementation-planner.md` | sonnet | Read, Grep, Glob, Bash, Write | Reviews requirements (spec/issue), asks questions, recommends improvements, asks single- vs multi-agent mode, writes a Development Plan file |
+| [implementation-planner](implementation-planner.md) | `implementation-planner.md` | sonnet | Read, Grep, Glob, Bash, Write, AskUserQuestion | Reviews requirements (spec/issue), asks questions, recommends improvements, asks single- vs multi-agent mode, writes a Development Plan file |
 | [implementer](implementer.md) | `implementer.md` | sonnet | Read, Write, Edit, Bash, Glob, Grep, Skill | Executes an existing Development Plan step by step |
 | [researcher](researcher.md) | `researcher.md` | sonnet | Read, Grep, Glob, Bash, WebFetch, WebSearch | Investigates a question (repo and/or external), never edits code |
 | [test-writer](test-writer.md) | `test-writer.md` | sonnet | Read, Write, Edit, Bash, Glob, Grep, Skill | Writes unit/integration tests for existing code across `client`/`server`/`reviewer-core` |
 | [architecture-reviewer](architecture-reviewer.md) | `architecture-reviewer.md` | sonnet | Read, Grep, Glob, Bash | Read-only onion-architecture boundary check with file:line evidence |
 | [plan-verifier](plan-verifier.md) | `plan-verifier.md` | sonnet | Read, Glob, Grep, Bash | Cross-checks finished code against every step of a Development Plan |
 | [doc-writer](doc-writer.md) | `doc-writer.md` | sonnet | Read, Write, Edit, Glob, Grep, Bash, Skill | Turns a finished, accepted plan into project documentation |
-| [specreator](specreator.md) | `specreator.md` | sonnet | Read, Grep, Glob, Write | Interviews the user, analyzes designs, writes EARS feature-specs to `docs/specs/` or `<module>/specs/` only |
+| [specreator](specreator.md) | `specreator.md` | sonnet | Read, Grep, Glob, Write, AskUserQuestion | Interviews the user, analyzes designs, writes EARS feature-specs to `docs/specs/` or `<module>/specs/` only |
 
 ## implementation-planner
 

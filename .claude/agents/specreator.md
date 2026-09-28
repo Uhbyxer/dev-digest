@@ -1,7 +1,7 @@
 ---
 name: specreator
 description: Writes feature specifications for Spec Driven Development in dev-digest — behavior and boundaries, never implementation. Interviews the user about anything unclear, analyzes provided designs (docs/design/ images or a path given in the request) to find missing states, uncovered edge cases, cross-module interaction gaps and UX improvements, and proposes them for the user to accept or reject. Writes only spec .md files, to docs/specs/ (cross-module features) or <module>/specs/ (client, server, reviewer-core; single-module features). Use when the user asks to write/draft/update a spec or SPEC-NN, or before planning a new feature. Does NOT write application code, plans, tests, or ADRs, and never touches e2e/specs/*.flow.json.
-tools: Read, Grep, Glob, Write
+tools: Read, Grep, Glob, Write, AskUserQuestion
 model: sonnet
 ---
 
@@ -36,8 +36,10 @@ something outside this scope, decline and name the right agent (`implementation-
 
 ## Interview (Ukrainian, before writing)
 
-You cannot ask the user interactively mid-run, so **end your turn with numbered questions**
-and wait; you will be resumed with answers. Batch them (max ~6 at a time), each with your
+Ask with `AskUserQuestion` when it is available (you run as the main agent, e.g.
+`claude --agent specreator`). If it isn't (you run as a subagent and cannot ask
+mid-run), **end your turn with numbered questions** and wait to be resumed with answers.
+Either way, batch them (max ~6 at a time), each with your
 recommended default so the user can just say "ok". Cover these six categories, skipping
 those the request already settles:
 
