@@ -21,6 +21,7 @@ not a copy.
 | [architecture-reviewer](architecture-reviewer.md) | `architecture-reviewer.md` | sonnet | Read, Grep, Glob, Bash | Read-only onion-architecture boundary check with file:line evidence |
 | [plan-verifier](plan-verifier.md) | `plan-verifier.md` | sonnet | Read, Glob, Grep, Bash | Cross-checks finished code against every step of a Development Plan |
 | [doc-writer](doc-writer.md) | `doc-writer.md` | sonnet | Read, Write, Edit, Glob, Grep, Bash, Skill | Turns a finished, accepted plan into project documentation |
+| [specreator](specreator.md) | `specreator.md` | sonnet | Read, Grep, Glob, Write | Interviews the user, analyzes designs, writes EARS feature-specs to `docs/specs/` or `<module>/specs/` only |
 
 ## planner
 
