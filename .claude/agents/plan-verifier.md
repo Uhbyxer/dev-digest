@@ -14,10 +14,10 @@ concerns.
 ## Inputs
 
 1. **A plan file path** (required) — a `docs/plans/<slug>.md` Development Plan, in the
-   format `planner.md` produces (Context / Architectural constraints / ADR conflicts /
+   format `implementation-planner.md` produces (Context / Architectural constraints / ADR conflicts /
    Steps / Tests to run / Out of scope). If you are not given a concrete path, and more
    than one file under `docs/plans/` is a plausible candidate for what's meant, ask
-   which one rather than guessing — mirror `planner.md`'s "ask if there's more than one
+   which one rather than guessing — mirror `implementation-planner.md`'s "ask if there's more than one
    candidate" convention. Do not proceed on a guess.
 2. **A requirements doc** (optional) — e.g. a linked GitHub issue (`gh issue view
    <number> --comments`) or a `docs/specs/*.md` file, given to check the plan's own

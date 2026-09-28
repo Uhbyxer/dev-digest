@@ -1,7 +1,7 @@
 # Agents map
 
 Seven-agent set for dev-digest work, built around the core two-stage
-pipeline **planner → implementer**, plus a standalone **researcher**. Four
+pipeline **implementation-planner → implementer**, plus a standalone **researcher**. Four
 more agents round out the pipeline around those: **test-writer** and
 **plan-verifier** both run after `implementer` finishes a plan (writing
 tests for the new code, then checking the finished work off against the
@@ -14,7 +14,7 @@ not a copy.
 
 | Agent | File | Model | Tools | Role |
 |---|---|---|---|---|
-| [planner](planner.md) | `planner.md` | sonnet | Read, Grep, Glob, Bash, Write | Turns a task/GitHub issue into a Development Plan file |
+| [implementation-planner](implementation-planner.md) | `implementation-planner.md` | sonnet | Read, Grep, Glob, Bash, Write | Reviews requirements (spec/issue), asks questions, recommends improvements, asks single- vs multi-agent mode, writes a Development Plan file |
 | [implementer](implementer.md) | `implementer.md` | sonnet | Read, Write, Edit, Bash, Glob, Grep, Skill | Executes an existing Development Plan step by step |
 | [researcher](researcher.md) | `researcher.md` | sonnet | Read, Grep, Glob, Bash, WebFetch, WebSearch | Investigates a question (repo and/or external), never edits code |
 | [test-writer](test-writer.md) | `test-writer.md` | sonnet | Read, Write, Edit, Bash, Glob, Grep, Skill | Writes unit/integration tests for existing code across `client`/`server`/`reviewer-core` |
@@ -23,9 +23,11 @@ not a copy.
 | [doc-writer](doc-writer.md) | `doc-writer.md` | sonnet | Read, Write, Edit, Glob, Grep, Bash, Skill | Turns a finished, accepted plan into project documentation |
 | [specreator](specreator.md) | `specreator.md` | sonnet | Read, Grep, Glob, Write | Interviews the user, analyzes designs, writes EARS feature-specs to `docs/specs/` or `<module>/specs/` only |
 
-## planner
+## implementation-planner
 
-- **Responsibility**: produce a structured Development Plan for a feature/fix
+- **Responsibility**: review the existing requirements (spec/issue), ask about
+  unclear points, recommend improvements, ask whether to run multi-agent or
+  single-agent, then produce a structured Development Plan for a feature/fix
   or GitHub issue, grounded in module boundaries (`server`/`client`/
   `reviewer-core`/`e2e`), each touched module's `INSIGHTS.md`, `CONTEXT.md`/
   ADRs, and onion-architecture constraints between `reviewer-core` and
@@ -33,12 +35,12 @@ not a copy.
 - **Permissions**: read-only over code (`Read`/`Grep`/`Glob`/`Bash`); the only
   `Write` use is the plan file itself. No `Edit`, no `Skill` tool — it does
   not apply skills, only cites which one applies to each step.
-- **Input**: a task description or GitHub issue number.
+- **Input**: a spec (`SPEC-NN`/path), GitHub issue number, or task description.
 - **Output**: `docs/plans/<slug>.md` (Context, Architectural constraints, ADR
   conflicts, Steps with files + skill(s) + module, Tests to run, Out of
   scope), plus a short chat summary.
-- **Does not**: write/edit application code, perform architectural or
-  security review.
+- **Does not**: write/edit specs (that's `specreator`) or application code,
+  perform architectural or security review.
 - **Sources its rules are grounded in**:
   - `CLAUDE.md` (module table, port list, do-not-touch list)
   - `TESTING.md` (per-package test commands it must cite under "Tests to run")
@@ -47,13 +49,13 @@ not a copy.
   - the `onion-architecture` skill (`.claude/skills/onion-architecture/`) —
     its trigger paths (`reviewer-core/src/**`, `server/src/modules/**`,
     `server/src/adapters/**`, `server/src/platform/container.ts`,
-    `server/src/db/**`) define exactly where the planner must require a
+    `server/src/db/**`) define exactly where the implementation-planner must require a
     port/adapter instead of a direct dependency
   - the `engineering-insights` skill contract (module `INSIGHTS.md` files)
 
 ## implementer
 
-- **Responsibility**: execute a Development Plan (as written by `planner`,
+- **Responsibility**: execute a Development Plan (as written by `implementation-planner`,
   typically under `docs/plans/`) across frontend and backend, selecting and
   invoking the relevant project skill per file it touches, running the
   project's test suites, and checking only that its changes match the plan's
@@ -61,7 +63,7 @@ not a copy.
 - **Permissions**: full edit access (`Read`/`Write`/`Edit`/`Bash`/`Glob`/
   `Grep`) plus `Skill`, since it must invoke skills as it works. Preloads the
   `engineering-insights` skill.
-- **Input**: a Development Plan file path (or "the plan the planner just
+- **Input**: a Development Plan file path (or "the plan the implementation-planner just
   wrote").
 - **Output**: code changes matching the plan, an `INSIGHTS.md` append for
   anything substantial newly learned, and a chat report (Steps completed /
@@ -107,7 +109,7 @@ not a copy.
   `typescript-expert`) as it writes tests. Preloads the
   `engineering-insights` skill.
 - **Input**: a target file/component/route/adapter/module to test, or a
-  gap the implementer/planner flagged as missing coverage.
+  gap the implementer/implementation-planner flagged as missing coverage.
 - **Output**: new or extended test files colocated with the source per
   `TESTING.md`'s suite map, and a chat report (files added/extended, skills
   applied per file, tests run + pass/fail, anything flagged for other
@@ -181,7 +183,7 @@ not a copy.
   explicitly-deferred item as a gap; trust file/function names over
   reading the actual code.
 - **Sources its rules are grounded in**:
-  - `planner.md`'s Development Plan template and "ask if there's more than
+  - `implementation-planner.md`'s Development Plan template and "ask if there's more than
     one candidate" convention
   - `TESTING.md` (to confirm a plan's "Tests to run" commands were actually
     run/passing) and the migration-file check under
