@@ -25,6 +25,8 @@ export const OnboardingTour = z.object({
   files_indexed: z.number().int().nonnegative(),
   /** True when built from a partial index. */
   partial_index: z.boolean(),
+  /** What was sent to the LLM (null when no LLM call was made). */
+  llm_input: z.object({ files: z.number().int().nonnegative(), approx_tokens: z.number().int().nonnegative() }).nullable(),
   sections: z.object({
     overview: z.object({ status: OnboardingSectionStatus, text: z.string().nullable() }),
     critical_paths: z.object({

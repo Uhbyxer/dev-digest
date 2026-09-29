@@ -12,6 +12,7 @@ const TOUR: OnboardingTour = {
   index_commit_sha: "sha-1",
   files_indexed: 12450,
   partial_index: false,
+  llm_input: null,
   sections: {
     overview: { status: "ok", text: "payments-api is a Node service." },
     critical_paths: {

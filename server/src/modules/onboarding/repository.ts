@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { OnboardingTour } from '@devdigest/shared';
@@ -35,5 +35,26 @@ export class OnboardingRepository {
       .where(sql`${t.fileEdges.repoId} = ${repoId} AND ${inArray(t.fileEdges.toFile, paths)}`)
       .groupBy(t.fileEdges.toFile);
     return new Map(rows.map((r) => [r.path, r.n]));
+  }
+
+  /** Which of `paths` the index knows (as a ranked file or as either end of an import edge). */
+  async existingPaths(repoId: string, paths: string[]): Promise<Set<string>> {
+    const unique = [...new Set(paths)];
+    if (unique.length === 0) return new Set();
+    const [ranked, from, to] = await Promise.all([
+      this.db
+        .select({ p: t.fileRank.filePath })
+        .from(t.fileRank)
+        .where(and(eq(t.fileRank.repoId, repoId), inArray(t.fileRank.filePath, unique))),
+      this.db
+        .select({ p: t.fileEdges.fromFile })
+        .from(t.fileEdges)
+        .where(and(eq(t.fileEdges.repoId, repoId), inArray(t.fileEdges.fromFile, unique))),
+      this.db
+        .select({ p: t.fileEdges.toFile })
+        .from(t.fileEdges)
+        .where(and(eq(t.fileEdges.repoId, repoId), inArray(t.fileEdges.toFile, unique))),
+    ]);
+    return new Set([...ranked, ...from, ...to].map((r) => r.p));
   }
 }
