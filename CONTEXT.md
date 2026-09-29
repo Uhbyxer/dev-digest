@@ -263,3 +263,31 @@ human wrote and owns.
 - Not to be confused with the **Add repository** screen, which currently
   lives at the `/onboarding` route. That route is about adding a repo, not
   about a Tour.
+
+## PR Brief
+
+A generated, stored one-card summary of a **pull request** for a reviewer who
+opens it cold, shown on the Overview tab. One current Brief per PR;
+regenerating replaces it (no history). It is a generated artifact, distinct
+from an **Onboarding Tour** (which is about a repo, not a PR).
+
+A Brief is made of a **summary** (what the PR does and why), **Risk areas**,
+and **Review focus**, shown next to the PR's **Intent** and **Blast radius**.
+Only the summary, Risk areas and Review focus are written by the model;
+Intent, Blast radius and diff statistics are computed facts the model is
+given, never re-derived by it. The model never reads diff hunk bodies.
+
+- **Risk area**: a concrete risk in the PR with a title, a severity
+  (`high | medium | low`) and at least one file that is part of the PR or of
+  its Blast radius. A risk with no verifiable file is dropped, not shown.
+- **Review focus**: an ordered "read these first" list. Each item is a file,
+  an optional line, and a reason. A line is shown only if it falls inside a
+  changed range of that file; otherwise the item shows the file alone.
+- **Missing data**: if the PR has no Intent or no Blast radius, the Brief is
+  still generated and says explicitly which data was unavailable.
+- A Brief is **stale** when the PR's head commit differs from the one it was
+  generated for. Staleness is only displayed; regeneration is always an
+  explicit user action.
+- The Brief's **specs** are the Attachments of the repo's enabled agents (and
+  their linked skills), deduplicated, read from the base branch like a
+  **Project context block**, and treated as untrusted data.
