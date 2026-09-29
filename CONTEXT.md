@@ -240,3 +240,26 @@ non-deterministic (timing-, ordering-, or randomness-dependent assertions).
 It does not consume a coverage report or test-runner output — no such
 integration exists in this codebase — so its skill text frames every check
 as "from reading the diff," not as coverage-tool-backed.
+
+## Onboarding Tour
+
+A generated, stored guide to an unfamiliar **repo**, made of exactly five
+sections: **Architecture overview**, **Critical paths**, **How to run
+locally**, **Guided reading path**, and **First tasks**. One current Tour per
+repo; regenerating replaces it (no history). It is a generated artifact, not
+authored content — distinct from a **Context Document**, which is a file a
+human wrote and owns.
+
+- **Onboarding Generator** is the name of the *feature/process* that
+  produces a Tour; the artifact users read is always the **Onboarding Tour**.
+- A Tour is **stale** when the repo index it was built from is newer than
+  the Tour. Staleness is only displayed; it never triggers regeneration on
+  its own. A Tour is first created, and later refreshed, only by an explicit
+  user action.
+- **Critical path**: a file the Tour singles out because much of the repo
+  depends on it (ranked by dependents), with a one-line role.
+- **Share link**: copies the Tour's local in-app URL. Local-first — it is
+  only meaningful on the same machine.
+- Not to be confused with the **Add repository** screen, which currently
+  lives at the `/onboarding` route. That route is about adding a repo, not
+  about a Tour.
