@@ -14,6 +14,7 @@ import { PrDetailHeader } from "./_components/PrDetailHeader";
 import { OverviewTab } from "./_components/OverviewTab";
 import { FindingsTab } from "./_components/FindingsTab";
 import { DiffTab } from "./_components/DiffTab";
+import { parseDiffTarget } from "@/components/diff-viewer";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "../../../../../lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
@@ -141,6 +142,7 @@ export default function PRDetailPage() {
             repoId={repoId}
             repoFullName={repoFullName}
             headSha={pr.head_sha}
+            prNumber={pr.number}
           />
         )}
 
@@ -175,6 +177,7 @@ export default function PRDetailPage() {
             filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            target={parseDiffTarget(search.get("file"), search.get("line"))}
           />
         )}
       </div>

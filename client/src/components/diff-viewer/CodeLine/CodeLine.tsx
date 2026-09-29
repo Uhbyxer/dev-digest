@@ -15,6 +15,7 @@ import type { FindingRecord } from "../../../lib/types";
 export function CodeLine({
   ln,
   path,
+  highlight,
   threads,
   commenting,
   findings,
@@ -22,6 +23,8 @@ export function CodeLine({
 }: {
   ln: Line;
   path: string;
+  /** This is the line a Review focus link pointed at. */
+  highlight?: boolean;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
   /** This file's findings (all of them) — matched down to this line below. */
@@ -46,7 +49,8 @@ export function CodeLine({
 
   return (
     <div
-      style={cs.rowWrap}
+      style={highlight ? { ...cs.rowWrap, outline: "2px solid var(--accent)" } : cs.rowWrap}
+      data-new-line={ln.kind !== "del" ? ln.newNo : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >

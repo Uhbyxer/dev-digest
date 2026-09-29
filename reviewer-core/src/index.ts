@@ -89,6 +89,11 @@ export {
   type VerifiedOnboarding,
 } from './onboarding/index.js';
 
+// PR Brief (ADR-0004): pure prompt-building, output schema, changed-range
+// parsing and verification. The LLM call and persistence live in
+// server/src/modules/brief.
+export * from './brief/index.js';
+
 // Intent layer: pure prompt-building, deterministic confidence scoring, and
 // linked-spec URL detection for PR intent/scope derivation. All I/O (the
 // LLM calls, the linked-URL fetch, persistence) lives in server/src/modules.

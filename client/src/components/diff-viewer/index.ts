@@ -4,3 +4,5 @@ export { DiffViewer } from "./DiffViewer";
 export type { DiffCommentApi } from "./comments";
 export { SmartDiffViewer } from "./SmartDiffViewer";
 export type { DiffFindingApi } from "./findings";
+export { parseDiffTarget } from "./target";
+export type { DiffTarget } from "./target";

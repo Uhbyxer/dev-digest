@@ -15,5 +15,31 @@
     "blame": "blame",
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
+  },
+  "card": {
+    "title": "PR Brief",
+    "generate": "Generate brief",
+    "generating": "Generating brief…",
+    "emptyBody": "Get oriented before reading the diff: what this PR does, what could go wrong, and where to start.",
+    "refresh": "Refresh brief",
+    "stale": "Stale — the PR has new commits",
+    "generatedAt": "Generated {time}",
+    "missing": "Built without: {items}.",
+    "missingIntent": "Intent",
+    "missingBlast": "Blast radius",
+    "loadError": "Couldn't load the brief.",
+    "generateError": "Couldn't generate the brief.",
+    "retry": "Retry",
+    "riskAreas": "Risk areas",
+    "reviewFocus": "Review focus",
+    "reviewFocusHint": "Read these first",
+    "severity": {
+      "high": "High risk",
+      "medium": "Medium risk",
+      "low": "Low risk"
+    },
+    "expand": "Show explanation",
+    "collapse": "Hide explanation",
+    "openFile": "Open {file} in Files changed"
   }
 }

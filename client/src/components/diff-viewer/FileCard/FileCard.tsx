@@ -16,6 +16,7 @@ import {
   type DiffCommentApi,
 } from "../comments";
 import { type DiffFindingApi } from "../findings";
+import { type DiffTarget } from "../target";
 import { s, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
@@ -35,16 +36,34 @@ export function FileCard({
   file,
   commenting,
   findingApi,
+  target,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   /** Findings threaded into this file's lines (Smart Diff / Original order). */
   findingApi?: DiffFindingApi;
+  /** When this is the target file: force it open and scroll to the target line. */
+  target?: DiffTarget;
 }) {
   const t = useTranslations("shell");
+  const isTarget = target?.file === file.path;
   const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
+    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES || isTarget
   );
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const targetLine = isTarget ? target?.line : undefined;
+  React.useEffect(() => {
+    if (isTarget) setOpen(true);
+  }, [isTarget, target?.file, targetLine]);
+  // Scroll once the file is open: to the line when it is rendered, else to the file.
+  React.useEffect(() => {
+    if (!isTarget || !open) return;
+    const row =
+      targetLine !== undefined
+        ? cardRef.current?.querySelector(`[data-new-line="${targetLine}"]`)
+        : null;
+    (row ?? cardRef.current)?.scrollIntoView?.({ block: "center" });
+  }, [isTarget, open, targetLine]);
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
   const fileFindings = React.useMemo(
     () => findingApi?.byPath.get(file.path) ?? [],
@@ -68,7 +87,7 @@ export function FileCard({
     : 0;
 
   return (
-    <div style={s.fileCard}>
+    <div ref={cardRef} style={s.fileCard} data-file={file.path}>
       <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
@@ -112,6 +131,7 @@ export function FileCard({
                 key={i}
                 ln={ln}
                 path={file.path}
+                highlight={targetLine !== undefined && ln.newNo === targetLine && ln.kind !== "del"}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
                 findings={fileFindings}
