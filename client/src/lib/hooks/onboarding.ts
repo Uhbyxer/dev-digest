@@ -1,6 +1,6 @@
 /* hooks/onboarding.ts — React Query hooks for the per-repo Onboarding Tour.
-     GET  /repos/:id/onboarding → { tour: OnboardingTour | null }
-     POST /repos/:id/onboarding → generate / regenerate (replaces the stored Tour). */
+     GET  /repos/:id/onboarding → { tour: OnboardingTour | null, stale: boolean }
+     POST /repos/:id/onboarding → generate / regenerate (replaces the stored Tour; stale is false). */
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { OnboardingTour, OnboardingTourResponse } from '@devdigest/shared';
 import {
   ONBOARDING_MAX_FILE_CHARS,
@@ -16,6 +14,7 @@ import { AppError, NotFoundError } from '../../platform/errors.js';
 import { RepoRepository } from '../repos/repository.js';
 import { OnboardingRepository } from './repository.js';
 import { resolveFeatureModel } from '../settings/feature-models.js';
+import { readCloneFile } from './read-clone.js';
 import { extractRunCommands } from './run-commands.js';
 
 /** Candidate files pulled from the rank facade before re-ranking by dependents. */
@@ -25,6 +24,11 @@ const CRITICAL_PATHS_SHOWN = 5;
 const LLM_SAMPLE_FILES = 12;
 /** Repo-root files always worth sending; not index claims, just context. */
 const CONTEXT_FILES = ['README.md', 'package.json'];
+
+/** The one logger method used here (Fastify's `req.log` satisfies it). */
+interface WarnLogger {
+  warn(obj: object, msg: string): void;
+}
 
 export class OnboardingService {
   private repo: OnboardingRepository;
@@ -45,7 +49,7 @@ export class OnboardingService {
   }
 
   /** Build (or rebuild) and store the Tour. Deterministic sections only for now. */
-  async generate(workspaceId: string, repoId: string): Promise<OnboardingTour> {
+  async generate(workspaceId: string, repoId: string, logger?: WarnLogger): Promise<OnboardingTour> {
     const repo = await this.requireRepo(workspaceId, repoId);
 
     const state = await this.container.repoIntel.getIndexState(repoId);
@@ -67,16 +71,11 @@ export class OnboardingService {
       .map((path) => ({ path, dependents: counts.get(path) ?? 0 }));
 
     const clonePath = repo.clonePath;
-    const readClone = async (rel: string): Promise<string | null> => {
-      if (!clonePath) return null;
-      try {
-        return await readFile(join(clonePath, rel), 'utf8');
-      } catch {
-        return null;
-      }
-    };
+    const readClone = async (rel: string): Promise<string | null> =>
+      clonePath ? readCloneFile(clonePath, rel) : null;
     const commands = clonePath ? await extractRunCommands(readClone) : [];
 
+    const previous = await this.repo.get(repoId);
     const llm = await this.generateLlmParts(
       workspaceId,
       repoId,
@@ -84,6 +83,7 @@ export class OnboardingService {
       criticalPaths.map((c) => c.path),
       [...new Set([...criticalPaths.map((c) => c.path), ...candidates.slice(0, LLM_SAMPLE_FILES)])],
       readClone,
+      logger,
     );
 
     const tour: OnboardingTour = {
@@ -115,6 +115,16 @@ export class OnboardingService {
         },
       },
     };
+    // A transient LLM failure must not wipe what a previous run wrote: the
+    // deterministic parts above are refreshed, the LLM-written ones carry over.
+    if (!llm.verified && previous) {
+      tour.llm_input = previous.llm_input;
+      tour.sections.overview = previous.sections.overview;
+      tour.sections.reading_path = previous.sections.reading_path;
+      tour.sections.first_tasks = previous.sections.first_tasks;
+      const roles = new Map(previous.sections.critical_paths.items.map((i) => [i.path, i.role]));
+      for (const item of tour.sections.critical_paths.items) item.role = roles.get(item.path) ?? null;
+    }
     await this.repo.save(repoId, tour);
     return tour;
   }
@@ -132,6 +142,7 @@ export class OnboardingService {
     criticalPaths: string[],
     samplePaths: string[],
     readClone: (rel: string) => Promise<string | null>,
+    logger?: WarnLogger,
   ): Promise<{ verified: VerifiedOnboarding | null; input: OnboardingTour['llm_input'] }> {
     try {
       const wanted = [...samplePaths, ...CONTEXT_FILES];
@@ -163,7 +174,10 @@ export class OnboardingService {
           approx_tokens: Math.ceil(messages.reduce((n, m) => n + m.content.length, 0) / 4),
         },
       };
-    } catch {
+    } catch (err) {
+      // Best-effort by design, but never silent: a missing key, a network
+      // error and a schema violation all look the same to the user.
+      logger?.warn({ repoId, err: (err as Error).message }, 'onboarding: LLM sections not generated');
       return { verified: null, input: null };
     }
   }

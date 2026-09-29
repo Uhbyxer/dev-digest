@@ -29,7 +29,7 @@ export default async function onboardingRoutes(appBase: FastifyInstance) {
     { schema: { params: IdParams } },
     async (req): Promise<OnboardingTourResponse> => {
       const { workspaceId } = await getContext(app.container, req);
-      return { tour: await service.generate(workspaceId, req.params.id), stale: false };
+      return { tour: await service.generate(workspaceId, req.params.id, req.log), stale: false };
     },
   );
 }

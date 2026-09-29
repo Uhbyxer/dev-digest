@@ -4,7 +4,7 @@
  * repo-intel facade stubbed and a throwaway clone directory on disk.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
@@ -254,8 +254,15 @@ d('Onboarding Tour routes (Testcontainers pg)', () => {
 
     it('keeps the deterministic sections when the LLM call fails', async () => {
       state = indexState();
+      const [fresh] = await pg.handle.db
+        .insert(t.repos)
+        .values({ workspaceId, owner: 'acme', name: 'fresh', fullName: 'acme/fresh', clonePath: cloneDir })
+        .returning();
+      await pg.handle.db
+        .insert(t.fileEdges)
+        .values({ repoId: fresh!.id, fromFile: 'src/a.ts', toFile: 'src/server.ts' });
       const broken = new MockLLMProvider('openai', { structuredBySchema: { OnboardingTourGeneration: { nope: true } } });
-      const res = await (await app(broken)).inject({ method: 'POST', url: `/repos/${repoId}/onboarding` });
+      const res = await (await app(broken)).inject({ method: 'POST', url: `/repos/${fresh!.id}/onboarding` });
       expect(res.statusCode).toBe(200);
       const { tour } = OnboardingTourResponse.parse(res.json());
       expect(tour!.sections.overview.status).toBe('not_generated');
@@ -304,6 +311,62 @@ d('Onboarding Tour routes (Testcontainers pg)', () => {
       // emptyRepo may already have a Tour from an earlier test; only assert the shape when it has none.
       const parsed = OnboardingTourResponse.parse(res.json());
       if (parsed.tour === null) expect(parsed.stale).toBe(false);
+    });
+  });
+
+  describe('safety and resilience', () => {
+    it('does not follow symlinks out of the clone (no host file reaches the LLM or the run commands)', async () => {
+      state = indexState();
+      const outside = await mkdtemp(join(tmpdir(), 'onb-outside-'));
+      const linkClone = await mkdtemp(join(tmpdir(), 'onb-link-'));
+      try {
+        await writeFile(join(outside, 'secret.txt'), 'TOP-SECRET-VALUE');
+        await writeFile(join(outside, 'package.json'), JSON.stringify({ scripts: { dev: 'echo host' } }));
+        await symlink(join(outside, 'secret.txt'), join(linkClone, 'README.md'));
+        await symlink(join(outside, 'package.json'), join(linkClone, 'package.json'));
+        await mkdir(join(linkClone, 'src'));
+        await writeFile(join(linkClone, 'src', 'server.ts'), 'export const ok = 1;');
+        const [linked] = await pg.handle.db
+          .insert(t.repos)
+          .values({ workspaceId, owner: 'acme', name: 'linked', fullName: 'acme/linked', clonePath: linkClone })
+          .returning();
+
+        const llm = llmWith(FIXTURE);
+        const res = await (await app(llm)).inject({ method: 'POST', url: `/repos/${linked!.id}/onboarding` });
+        const { tour } = OnboardingTourResponse.parse(res.json());
+
+        const sent = JSON.stringify(llm.calls.map((c) => c.req));
+        expect(sent).not.toContain('TOP-SECRET-VALUE');
+        expect(sent).toContain('export const ok = 1;'); // real files inside the clone still work
+        expect(tour!.sections.run_locally.status).toBe('not_generated');
+      } finally {
+        await rm(outside, { recursive: true, force: true });
+        await rm(linkClone, { recursive: true, force: true });
+      }
+    });
+
+    it('a failed LLM pass on Regenerate keeps the previous LLM-written sections', async () => {
+      state = indexState({ lastIndexedSha: 'sha-good' });
+      const [r] = await pg.handle.db
+        .insert(t.repos)
+        .values({ workspaceId, owner: 'acme', name: 'keep', fullName: 'acme/keep', clonePath: cloneDir })
+        .returning();
+      await pg.handle.db.insert(t.fileEdges).values({ repoId: r!.id, fromFile: 'src/a.ts', toFile: 'src/server.ts' });
+
+      const good = await (await app(llmWith(FIXTURE))).inject({ method: 'POST', url: `/repos/${r!.id}/onboarding` });
+      expect(OnboardingTourResponse.parse(good.json()).tour!.sections.overview.status).toBe('ok');
+
+      state = indexState({ lastIndexedSha: 'sha-new' });
+      const broken = new MockLLMProvider('openai', { structuredBySchema: { OnboardingTourGeneration: { nope: true } } });
+      const res = await (await app(broken)).inject({ method: 'POST', url: `/repos/${r!.id}/onboarding` });
+      const { tour } = OnboardingTourResponse.parse(res.json());
+
+      // Deterministic parts are refreshed…
+      expect(tour!.index_commit_sha).toBe('sha-new');
+      // …but a transient LLM failure does not wipe what the LLM wrote before.
+      expect(tour!.sections.overview).toEqual({ status: 'ok', text: FIXTURE.overview });
+      expect(tour!.sections.reading_path.status).toBe('ok');
+      expect(tour!.sections.first_tasks.status).toBe('ok');
     });
   });
 });
