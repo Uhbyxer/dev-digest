@@ -102,6 +102,12 @@ describe("PrBriefCard", () => {
     expect(posts()).toHaveLength(1);
   });
 
+  it("still shows the aside (Intent / Blast radius) before a Brief exists", async () => {
+    renderCard();
+    await screen.findByRole("button", { name: "Generate brief" });
+    expect(screen.getByText("ASIDE")).toBeInTheDocument();
+  });
+
   it("shows a stored Brief immediately, without calling generate", async () => {
     brief = BRIEF;
     renderCard();

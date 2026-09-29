@@ -187,6 +187,8 @@ export function PrBriefCard(props: PrBriefCardProps) {
               </Button>
             </div>
           )}
+          {/* Before a Brief exists Intent / Blast radius still show (BriefBody renders them otherwise). */}
+          {!brief && props.aside && <div style={s.aside}>{props.aside}</div>}
         </>
       )}
     </section>

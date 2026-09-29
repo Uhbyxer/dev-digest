@@ -1,8 +1,9 @@
+import { MAX_BRIEF_RISKS, MAX_REVIEW_FOCUS } from '@devdigest/shared';
 import { lineInRanges, type LineRange } from './ranges.js';
 import type { BriefLlmResult } from './schemas.js';
 
-export const BRIEF_MAX_RISKS = 5;
-export const BRIEF_MAX_FOCUS = 5;
+export const BRIEF_MAX_RISKS = MAX_BRIEF_RISKS;
+export const BRIEF_MAX_FOCUS = MAX_REVIEW_FOCUS;
 
 export interface VerifiedBrief {
   summary: string;

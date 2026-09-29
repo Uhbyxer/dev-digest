@@ -16,6 +16,7 @@ process).
 ## Codebase Patterns
 - `@devdigest/ui`'s `SectionLabel` takes a `right` prop (`React.ReactNode`, right-aligned via `marginLeft: auto`) — use it to place a status `Badge` next to a section header instead of adding custom flex markup (see `IntentPanel`).
 - The vendored `client/src/vendor/shared/contracts/*.ts` files are meant to be byte-identical mirrors of `server/src/vendor/shared/contracts/*.ts` (not hand-ported field-by-field) — when a shared contract changes, `cp` the server file over the client one rather than re-typing the diff, to guarantee they don't drift.
+- Diff deep links (`?tab=diff&file=&line=`): `parseDiffTarget` (`components/diff-viewer/target.ts`) → `DiffTab target` → `SmartDiffViewer`/`DiffViewer` → `FileCard`, which force-opens and `scrollIntoView`s `[data-new-line]`; jsdom has no `scrollIntoView`, so tests must stub `Element.prototype.scrollIntoView`. The PR Brief card receives Intent/Blast panels as an `aside` slot and must render it in every state, or those panels vanish before a Brief exists.
 
 ## Tool & Library Notes
 - `@testing-library/user-event` is NOT installed in client; write RTL tests with `fireEvent` (use `fireEvent.change` on textareas). Importing user-event fails at vite import-analysis.
