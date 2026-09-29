@@ -239,6 +239,18 @@ export interface GitClient {
   blame(repo: RepoRef, path: string): Promise<BlameLine[]>;
   log(repo: RepoRef, path?: string): Promise<GitCommit[]>;
   readFile(repo: RepoRef, path: string): Promise<string>;
+  /**
+   * Paths (repo-relative, POSIX) of files under `dir` at `ref` (e.g.
+   * `origin/main`) via `git ls-tree -r`. Empty when the ref or dir is absent.
+   */
+  listFilesAtRef(repo: RepoRef, ref: string, dir: string): Promise<string[]>;
+  /**
+   * File contents at `ref` (`git show <ref>:<path>`); null when absent there.
+   * With `maxBytes`, the read is bounded: a blob larger than `maxBytes` yields
+   * a truncated string of `maxBytes + 1` bytes (never fully buffered), so the
+   * caller can treat any result longer than `maxBytes` as oversize.
+   */
+  readFileAtRef(repo: RepoRef, ref: string, path: string, maxBytes?: number): Promise<string | null>;
   clonePathFor(repo: RepoRef): string;
 }
 

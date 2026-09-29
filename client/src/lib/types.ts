@@ -43,6 +43,15 @@ export type {
   IntentSource,
 } from "@devdigest/shared";
 export type { FindingRecord, FindingActionKind } from "@devdigest/shared";
+export type {
+  ContextDocument,
+  ContextDocType,
+  ContextOwnerType,
+  ContextDocumentContent,
+  ContextAttachmentsResponse,
+  EffectiveContextPreview,
+  ProjectContextSnapshot,
+} from "@devdigest/shared";
 
 /** UI-only view model for a PR list row (derives display fields from PrMeta). */
 export interface PrRowView {

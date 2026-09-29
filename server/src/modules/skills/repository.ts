@@ -102,11 +102,19 @@ export class SkillsRepository {
 
   /** Delete a skill (scoped to workspace). Versions/agent-links cascade. */
   async deleteById(workspaceId: string, id: string): Promise<boolean> {
-    const rows = await this.db
-      .delete(t.skills)
-      .where(and(eq(t.skills.workspaceId, workspaceId), eq(t.skills.id, id)))
-      .returning({ id: t.skills.id });
-    return rows.length > 0;
+    return this.db.transaction(async (tx) => {
+      const rows = await tx
+        .delete(t.skills)
+        .where(and(eq(t.skills.workspaceId, workspaceId), eq(t.skills.id, id)))
+        .returning({ id: t.skills.id });
+      // context_attachments.owner_id is polymorphic (no FK) — detach explicitly.
+      if (rows.length > 0) {
+        await tx
+          .delete(t.contextAttachments)
+          .where(and(eq(t.contextAttachments.ownerType, 'skill'), eq(t.contextAttachments.ownerId, id)));
+      }
+      return rows.length > 0;
+    });
   }
 
   private async snapshotVersion(skillId: string, version: number, body: string): Promise<void> {

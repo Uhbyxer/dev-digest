@@ -1,5 +1,6 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 import { mkdir, readFile, access, rm } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import type {
@@ -128,6 +129,54 @@ export class SimpleGitClient implements GitClient {
 
   async readFile(repo: RepoRef, path: string): Promise<string> {
     return readFile(join(this.clonePathFor(repo), path), 'utf8');
+  }
+
+  async listFilesAtRef(repo: RepoRef, ref: string, dir: string): Promise<string[]> {
+    try {
+      const raw = await this.git(repo).raw(['ls-tree', '-r', '--name-only', ref, '--', dir]);
+      return raw
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    } catch {
+      return [];
+    }
+  }
+
+  async readFileAtRef(repo: RepoRef, ref: string, path: string, maxBytes?: number): Promise<string | null> {
+    if (maxBytes === undefined) {
+      try {
+        return await this.git(repo).raw(['show', `${ref}:${path}`]);
+      } catch {
+        return null;
+      }
+    }
+    // Bounded read: stream `git show` and stop after maxBytes + 1 bytes, so an
+    // oversized blob is never fully buffered (caller sees > maxBytes = oversize).
+    return new Promise((resolve) => {
+      const child = spawn('git', ['show', `${ref}:${path}`], {
+        cwd: this.clonePathFor(repo),
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      const chunks: Buffer[] = [];
+      let total = 0;
+      let done = false;
+      const finish = (v: string | null) => {
+        if (done) return;
+        done = true;
+        resolve(v);
+      };
+      child.stdout.on('data', (c: Buffer) => {
+        chunks.push(c);
+        total += c.length;
+        if (total > maxBytes) {
+          child.kill();
+          finish(Buffer.concat(chunks).subarray(0, maxBytes + 1).toString('utf8'));
+        }
+      });
+      child.on('error', () => finish(null));
+      child.on('close', (code) => finish(code === 0 ? Buffer.concat(chunks).toString('utf8') : null));
+    });
   }
 }
 

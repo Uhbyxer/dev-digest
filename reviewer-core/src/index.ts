@@ -92,3 +92,16 @@ export {
   buildQuarantineExtractionPrompt,
   detectLinkedSpecUrl,
 } from './intent/index.js';
+
+// Project context: pure serialization of the effective Context Document set
+// (dedupe, deterministic block text, token estimate, 8k warn flag). Reading
+// the files / resolving attachments lives in server/src/modules.
+export {
+  estimateTokens,
+  PROJECT_CONTEXT_WARN_TOKENS,
+  dedupeEffectiveSet,
+  serializeProjectContext,
+  PROJECT_CONTEXT_HEADING,
+  type ProjectContextEntry,
+  type SerializedProjectContext,
+} from './project-context/index.js';
