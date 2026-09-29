@@ -26,11 +26,12 @@ const TOUR: OnboardingTour = {
 };
 
 let tour: OnboardingTour | null = TOUR;
+let stale = false;
 let indexStatus: "full" | "partial" | "degraded" | "failed" = "full";
 
 vi.mock("../../../../../lib/hooks/onboarding", () => ({
   useOnboardingTour: () => ({
-    data: { tour },
+    data: { tour, stale },
     isLoading: false,
     isError: false,
     error: undefined,
@@ -48,6 +49,7 @@ afterEach(() => {
   cleanup();
   mockGenerate.mockClear();
   tour = TOUR;
+  stale = false;
   indexStatus = "full";
 });
 
@@ -114,5 +116,33 @@ describe("OnboardingTourView", () => {
     expect(screen.queryByText("payments-api is a Node service.")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Expand Architecture overview" }));
     expect(screen.getByText("payments-api is a Node service.")).toBeInTheDocument();
+  });
+
+  it("shows a stale badge only when the index is newer than the Tour", () => {
+    renderView();
+    expect(screen.queryByText("Stale — the repo index is newer than this tour")).not.toBeInTheDocument();
+    cleanup();
+    stale = true;
+    renderView();
+    expect(screen.getByText("Stale — the repo index is newer than this tour")).toBeInTheDocument();
+    // Stale is display-only: nothing regenerates by itself.
+    expect(mockGenerate).not.toHaveBeenCalled();
+  });
+
+  it("shows a banner when the Tour was built from a partial index", () => {
+    tour = { ...TOUR, partial_index: true };
+    renderView();
+    expect(screen.getByText("Built from a partial index — parts of the repo may be missing.")).toBeInTheDocument();
+  });
+
+  it("has no partial banner for a full index", () => {
+    renderView();
+    expect(screen.queryByText(/partial index/)).not.toBeInTheDocument();
+  });
+
+  it("Regenerate starts generation", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
   });
 });

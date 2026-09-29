@@ -4,7 +4,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Button, ErrorState, Icon, Skeleton } from "@devdigest/ui";
+import { Badge, Button, ErrorState, Icon, Skeleton } from "@devdigest/ui";
 import type { OnboardingTour } from "@devdigest/shared";
 import { useOnboardingTour, useGenerateOnboardingTour } from "../../../../../lib/hooks/onboarding";
 import { useRepoIntelStatus } from "../../../../../lib/hooks/repo-intel";
@@ -23,6 +23,7 @@ export function OnboardingTourView({ repoId, repoFullName }: { repoId: string; r
   const indexStatus = index.data?.status;
   const indexReady = indexStatus !== undefined && READY_INDEX_STATUSES.includes(indexStatus);
   const tour = data?.tour ?? null;
+  const stale = data?.stale ?? false;
 
   if (isLoading) return <Skeleton height={320} />;
   if (isError) {
@@ -86,8 +87,17 @@ export function OnboardingTourView({ repoId, repoFullName }: { repoId: string; r
               {t("subtitle", { count: tour.files_indexed, time: relativeTime(tour.generated_at) })}
             </p>
           </div>
-          <div style={s.headerActions}>{generateButton("secondary", t("regenerate"))}</div>
+          <div style={s.headerActions}>
+            {stale && (
+              <Badge icon="Clock" color="var(--warn, var(--text-secondary))">
+                {t("stale")}
+              </Badge>
+            )}
+            {generateButton("secondary", t("regenerate"))}
+          </div>
         </div>
+
+        {tour.partial_index && <div style={s.banner}>{t("partialIndex")}</div>}
 
         {SECTION_KEYS.map((k) => (
           <TourSection key={k} id={k} status={tour.sections[k].status}>

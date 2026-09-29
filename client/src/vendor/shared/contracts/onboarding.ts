@@ -49,5 +49,9 @@ export const OnboardingTour = z.object({
 });
 export type OnboardingTour = z.infer<typeof OnboardingTour>;
 
-export const OnboardingTourResponse = z.object({ tour: OnboardingTour.nullable() });
+export const OnboardingTourResponse = z.object({
+  tour: OnboardingTour.nullable(),
+  /** True when the current index is newer than the one the Tour was built from. Display only. */
+  stale: z.boolean(),
+});
 export type OnboardingTourResponse = z.infer<typeof OnboardingTourResponse>;

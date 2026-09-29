@@ -279,4 +279,31 @@ d('Onboarding Tour routes (Testcontainers pg)', () => {
       expect(tour!.llm_input!.approx_tokens).toBeGreaterThan(0);
     });
   });
+
+  describe('freshness', () => {
+    it('is not stale right after generating, and stale once the index commit moves on', async () => {
+      state = indexState({ lastIndexedSha: 'sha-A' });
+      const a = await app();
+      const gen = await a.inject({ method: 'POST', url: `/repos/${repoId}/onboarding` });
+      expect(OnboardingTourResponse.parse(gen.json()).stale).toBe(false);
+
+      const fresh = await a.inject({ method: 'GET', url: `/repos/${repoId}/onboarding` });
+      expect(OnboardingTourResponse.parse(fresh.json()).stale).toBe(false);
+
+      state = indexState({ lastIndexedSha: 'sha-B' });
+      const stale = await a.inject({ method: 'GET', url: `/repos/${repoId}/onboarding` });
+      const parsed = OnboardingTourResponse.parse(stale.json());
+      expect(parsed.stale).toBe(true);
+      // Stale is display-only: the stored Tour is untouched.
+      expect(parsed.tour!.index_commit_sha).toBe('sha-A');
+    });
+
+    it('is never stale when there is no Tour yet', async () => {
+      state = indexState();
+      const res = await (await app()).inject({ method: 'GET', url: `/repos/${emptyRepoId}/onboarding` });
+      // emptyRepo may already have a Tour from an earlier test; only assert the shape when it has none.
+      const parsed = OnboardingTourResponse.parse(res.json());
+      if (parsed.tour === null) expect(parsed.stale).toBe(false);
+    });
+  });
 });

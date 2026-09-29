@@ -7,7 +7,7 @@ import { OnboardingService } from './service.js';
 
 /**
  * Onboarding Tour module (SPEC-02).
- *   GET  /repos/:id/onboarding  → { tour: OnboardingTour | null }
+ *   GET  /repos/:id/onboarding  → { tour: OnboardingTour | null, stale }
  *   POST /repos/:id/onboarding  → generate / regenerate; replaces the stored Tour.
  *                                 409 `index_not_ready` while the index is not usable.
  */
@@ -20,7 +20,7 @@ export default async function onboardingRoutes(appBase: FastifyInstance) {
     { schema: { params: IdParams } },
     async (req): Promise<OnboardingTourResponse> => {
       const { workspaceId } = await getContext(app.container, req);
-      return { tour: await service.get(workspaceId, req.params.id) };
+      return service.get(workspaceId, req.params.id);
     },
   );
 
@@ -29,7 +29,7 @@ export default async function onboardingRoutes(appBase: FastifyInstance) {
     { schema: { params: IdParams } },
     async (req): Promise<OnboardingTourResponse> => {
       const { workspaceId } = await getContext(app.container, req);
-      return { tour: await service.generate(workspaceId, req.params.id) };
+      return { tour: await service.generate(workspaceId, req.params.id), stale: false };
     },
   );
 }

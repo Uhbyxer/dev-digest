@@ -1,6 +1,6 @@
 # 04 — Stale badge, partial-index banner, Regenerate
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 Spec: ../spec.md
 
@@ -10,7 +10,12 @@ Make the Tour honest about its freshness. The server reports whether the Tour is
 
 ## Acceptance criteria
 
-- [ ] Stale badge appears when the index is newer than the Tour; no automatic regeneration (AC-9).
-- [ ] Partial index shows the banner; generation is still allowed (AC-13).
-- [ ] Regenerate replaces the Tour and updates the refresh time (AC-3).
-- [ ] Server integration test covers stale and partial flags; client test covers badge, banner and Regenerate.
+- [x] Stale badge appears when the index is newer than the Tour; no automatic regeneration (AC-9).
+- [x] Partial index shows the banner; generation is still allowed (AC-13).
+- [x] Regenerate replaces the Tour and updates the refresh time (AC-3).
+- [x] Server integration test covers stale and partial flags; client test covers badge, banner and Regenerate.
+
+## Comments
+
+- `GET` now returns `{ tour, stale }`; `stale` = current index `lastIndexedSha` differs from the Tour's. `POST` returns `stale: false`. Display only.
+- Regenerate was already in the header from ticket 02; this ticket added its test plus the stale badge and partial-index banner.

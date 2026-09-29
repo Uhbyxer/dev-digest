@@ -29,5 +29,7 @@
     "first_tasks": "First tasks"
   },
   "collapse": "Collapse",
-  "expand": "Expand"
+  "expand": "Expand",
+  "stale": "Stale — the repo index is newer than this tour",
+  "partialIndex": "Built from a partial index — parts of the repo may be missing."
 }

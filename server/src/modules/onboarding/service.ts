@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { OnboardingTour } from '@devdigest/shared';
+import type { OnboardingTour, OnboardingTourResponse } from '@devdigest/shared';
 import {
   ONBOARDING_MAX_FILE_CHARS,
   ONBOARDING_SCHEMA_NAME,
@@ -35,9 +35,13 @@ export class OnboardingService {
     this.reposRepo = new RepoRepository(container.db);
   }
 
-  async get(workspaceId: string, repoId: string): Promise<OnboardingTour | null> {
+  /** The stored Tour plus whether the index has moved on since. Display only — never regenerates. */
+  async get(workspaceId: string, repoId: string): Promise<OnboardingTourResponse> {
     await this.requireRepo(workspaceId, repoId);
-    return this.repo.get(repoId);
+    const tour = await this.repo.get(repoId);
+    if (!tour) return { tour: null, stale: false };
+    const state = await this.container.repoIntel.getIndexState(repoId);
+    return { tour, stale: state.lastIndexedSha !== tour.index_commit_sha };
   }
 
   /** Build (or rebuild) and store the Tour. Deterministic sections only for now. */
