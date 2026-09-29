@@ -3,7 +3,9 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Button, Modal } from "@devdigest/ui";
-import { CONTEXT_DOC_MAX_BYTES, type ContextDocType } from "@devdigest/shared";
+// Runtime value: import from the contract file, not the barrel (`.js` specifiers
+// in the barrel do not resolve in webpack).
+import { CONTEXT_DOC_MAX_BYTES, type ContextDocType } from "@devdigest/shared/contracts/context";
 import { useUploadContextDocument } from "@/lib/hooks/context";
 import { DOC_TYPES, MODAL_WIDTH } from "../constants";
 import { isMarkdownFile } from "../helpers";

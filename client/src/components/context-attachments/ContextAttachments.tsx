@@ -8,11 +8,13 @@ import React from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Badge, EmptyState, ErrorState, Icon, Skeleton } from "@devdigest/ui";
+// Runtime values come from the contract file directly: the barrel's `.js`
+// specifiers do not resolve in webpack (the client otherwise imports types only).
 import {
   CONTEXT_DOC_MAX_BYTES,
   CONTEXT_TOKEN_WARN_THRESHOLD,
   type ContextOwnerType,
-} from "@devdigest/shared";
+} from "@devdigest/shared/contracts/context";
 import {
   useContextDocuments,
   useOwnerContext,

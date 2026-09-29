@@ -25,7 +25,7 @@
     "crumb": "Project Context",
     "repoFallback": "repository",
     "subtitle": "Markdown documents under .devdigest/specs, docs and insights. Attach them to agents and skills as untrusted grounding context.",
-    "folders": ".devdigest/{specs,docs,insights}/"
+    "folders": ".devdigest/'{'specs,docs,insights'}'/"
   },
   "types": {
     "specs": "specs",
