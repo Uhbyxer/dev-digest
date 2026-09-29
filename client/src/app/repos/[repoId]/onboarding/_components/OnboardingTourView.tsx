@@ -4,7 +4,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Badge, Button, ErrorState, Icon, Skeleton } from "@devdigest/ui";
+import { Badge, Button, ErrorState, Icon, IconBtn, Skeleton } from "@devdigest/ui";
 import type { OnboardingTour } from "@devdigest/shared";
 import { useOnboardingTour, useGenerateOnboardingTour } from "../../../../../lib/hooks/onboarding";
 import { useRepoIntelStatus } from "../../../../../lib/hooks/repo-intel";
@@ -12,6 +12,7 @@ import { ApiError } from "../../../../../lib/api";
 import { relativeTime } from "../../../../../lib/format";
 import { READY_INDEX_STATUSES, SECTION_KEYS } from "../constants";
 import { s } from "../styles";
+import { copyWithToast, tourToMarkdown, tourUrl } from "../helpers";
 import { TourSection } from "./TourSection";
 
 export function OnboardingTourView({ repoId, repoFullName }: { repoId: string; repoFullName: string }) {
@@ -93,6 +94,39 @@ export function OnboardingTourView({ repoId, repoFullName }: { repoId: string; r
                 {t("stale")}
               </Badge>
             )}
+            <Button
+              kind="secondary"
+              size="sm"
+              icon="Link"
+              onClick={() => copyWithToast(tourUrl(repoId), t("copied"), t("copyFailed"))}
+            >
+              {t("shareLink")}
+            </Button>
+            <Button
+              kind="secondary"
+              size="sm"
+              icon="Copy"
+              onClick={() =>
+                copyWithToast(
+                  tourToMarkdown(tour, {
+                    heading: t("heading", { repo: repoFullName }),
+                    titles: {
+                      overview: t("sectionTitles.overview"),
+                      critical_paths: t("sectionTitles.critical_paths"),
+                      run_locally: t("sectionTitles.run_locally"),
+                      reading_path: t("sectionTitles.reading_path"),
+                      first_tasks: t("sectionTitles.first_tasks"),
+                    },
+                    notGenerated: t("notGenerated"),
+                    dependents: (count) => t("mdDependents", { count }),
+                  }),
+                  t("copied"),
+                  t("copyFailed"),
+                )
+              }
+            >
+              {t("copyMarkdown")}
+            </Button>
             {generateButton("secondary", t("regenerate"))}
           </div>
         </div>
@@ -118,9 +152,20 @@ function SectionBody({ tour, k }: { tour: OnboardingTour; k: (typeof SECTION_KEY
       return (
         <ul style={s.list}>
           {tour.sections.critical_paths.items.map((i) => (
-            <li key={i.path} style={s.mono}>
-              {`${i.path} — ${t("dependents", { count: i.dependents })}`}
-              {i.role && <span style={s.muted}> · {i.role}</span>}
+            <li key={i.path} style={s.row}>
+              <span style={s.mono}>
+                {`${i.path} — ${t("dependents", { count: i.dependents })}`}
+                {i.role && <span style={s.muted}> · {i.role}</span>}
+              </span>
+              {/* No in-app file viewer yet: Open copies the relative path. */}
+              <Button
+                kind="secondary"
+                size="sm"
+                aria-label={t("openPath", { path: i.path })}
+                onClick={() => copyWithToast(i.path, t("openCopiedPath"), t("copyFailed"))}
+              >
+                {t("open")}
+              </Button>
             </li>
           ))}
         </ul>
@@ -129,8 +174,13 @@ function SectionBody({ tour, k }: { tour: OnboardingTour; k: (typeof SECTION_KEY
       return (
         <ol style={s.list}>
           {tour.sections.run_locally.steps.map((step) => (
-            <li key={step.command} style={s.mono}>
-              {step.command}
+            <li key={step.command} style={s.row}>
+              <span style={s.mono}>{step.command}</span>
+              <IconBtn
+                icon="Copy"
+                label={t("copyCommand", { command: step.command })}
+                onClick={() => copyWithToast(step.command, t("copied"), t("copyFailed"))}
+              />
             </li>
           ))}
         </ol>

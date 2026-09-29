@@ -31,5 +31,14 @@
   "collapse": "Collapse",
   "expand": "Expand",
   "stale": "Stale — the repo index is newer than this tour",
-  "partialIndex": "Built from a partial index — parts of the repo may be missing."
+  "partialIndex": "Built from a partial index — parts of the repo may be missing.",
+  "copyMarkdown": "Copy as Markdown",
+  "shareLink": "Share link",
+  "open": "Open",
+  "copied": "Copied",
+  "copyFailed": "Could not copy to the clipboard",
+  "openCopiedPath": "Path copied — opening files in-app is not available yet",
+  "copyCommand": "Copy command: {command}",
+  "openPath": "Open {path}",
+  "mdDependents": "used by {count} files"
 }

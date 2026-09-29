@@ -39,5 +39,6 @@ export const s = {
   muted: { color: "var(--text-muted)", fontSize: 13 } satisfies CSSProperties,
   mono: { fontFamily: "var(--font-mono, monospace)", fontSize: 13 } satisfies CSSProperties,
   list: { display: "flex", flexDirection: "column", gap: 8, margin: 0, padding: 0, listStyle: "none" } satisfies CSSProperties,
+  row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 } satisfies CSSProperties,
   empty: { padding: "48px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 } satisfies CSSProperties,
 } as const;

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { render, screen, fireEvent, cleanup, within, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { OnboardingTour } from "@devdigest/shared";
 import messages from "../../../../../../messages/en/onboarding.json";
@@ -144,5 +144,51 @@ describe("OnboardingTourView", () => {
     renderView();
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
     expect(mockGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  describe("copy actions", () => {
+    const writeText = vi.fn();
+    beforeEach(() => {
+      writeText.mockReset().mockResolvedValue(undefined);
+      Object.assign(navigator, { clipboard: { writeText } });
+    });
+
+    it("Copy as Markdown copies all five sections", async () => {
+      renderView();
+      fireEvent.click(screen.getByRole("button", { name: "Copy as Markdown" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+      const md = writeText.mock.calls[0]![0] as string;
+      for (const title of [
+        "Architecture overview",
+        "Critical paths",
+        "How to run locally",
+        "Guided reading path",
+        "First tasks",
+      ]) {
+        expect(md).toContain(`## ${title}`);
+      }
+      expect(md).toContain("payments-api is a Node service.");
+      expect(md).toContain("`src/server.ts` — used by 14 files");
+      expect(md).toContain("pnpm install");
+      expect(md).toContain("Add a health check");
+    });
+
+    it("Share link copies the Tour page's local URL", async () => {
+      renderView();
+      fireEvent.click(screen.getByRole("button", { name: "Share link" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/repos/r1/onboarding`));
+    });
+
+    it("each run command has a copy button", async () => {
+      renderView();
+      fireEvent.click(screen.getByRole("button", { name: "Copy command: pnpm dev" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith("pnpm dev"));
+    });
+
+    it("Open on a critical path copies its relative path (no in-app file viewer)", async () => {
+      renderView();
+      fireEvent.click(screen.getByRole("button", { name: "Open src/server.ts" }));
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith("src/server.ts"));
+    });
   });
 });

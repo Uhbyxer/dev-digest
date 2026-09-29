@@ -1,6 +1,6 @@
 # 05 — Copy as Markdown, Share link, run-command copy, Open
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Spec: ../spec.md
 
@@ -10,8 +10,13 @@ The small user actions around a rendered Tour: **Copy as Markdown** (all five se
 
 ## Acceptance criteria
 
-- [ ] Copy as Markdown copies all five sections (AC-10).
-- [ ] Share link copies the Tour page's local URL (AC-10).
-- [ ] Each run command has a working copy button (AC-6).
-- [ ] Open opens the file in the existing viewer, or copies the relative path if none exists.
-- [ ] Client component tests cover each action with mocked clipboard.
+- [x] Copy as Markdown copies all five sections (AC-10).
+- [x] Share link copies the Tour page's local URL (AC-10).
+- [x] Each run command has a working copy button (AC-6).
+- [x] Open opens the file in the existing viewer, or copies the relative path if none exists.
+- [x] Client component tests cover each action with mocked clipboard.
+
+## Comments
+
+- No in-app read-only file viewer exists (the diff viewer is PR-specific), so **Open copies the relative path** (spec fallback) and says so in the toast.
+- Share link copies `${origin}/repos/:id/onboarding`.
