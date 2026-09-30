@@ -134,6 +134,75 @@ snapshot would "replay" with, if anything ever replays it. Nothing consumes
 built) — this is a documented gap for whoever builds that consumer, not a
 bug in the current feature.
 
+## Context Document
+
+A Markdown file (`.md` only, max 100 KB) that lives in a repo's own tree
+under `.devdigest/specs/`, `.devdigest/docs/`, or `.devdigest/insights/`. It
+is a *file*, not a database row: there is no `context_documents` table.
+Listing, viewing, editing, creating, uploading, and deleting happen on the
+Project Context page against the **working tree of the repo's clone**, with
+all paths confined to those three folders (traversal, symlinks escaping the
+folders, and non-`.md` files are refused).
+
+- Distinct from a **Skill**: a Skill is workspace-wide prompt content owned
+  by the DB; a Context Document is repo-scoped reference material owned by
+  the repo's files and only reaches a prompt when attached (see
+  **Attachment**).
+- Distinct from `memory` (RAG/embedding-backed) — Context Documents are
+  injected whole, never retrieved or chunked.
+- Token counts shown in the UI are an estimate, `ceil(chars / 4)`.
+
+## Attachment
+
+A link that makes one Context Document part of an Agent's or a Skill's
+context. Stored in `context_attachments` (`repo_id`, `owner_type`
+`agent | skill`, `owner_id`, `path`, `order`). `path` is a plain string, not
+a foreign key, because documents are files. `owner_id` is polymorphic (no
+FK); attachments are detached by the agents/skills repositories when the
+owner is deleted, and by the Project Context page when the document is.
+
+- `order` is scoped per `(repo, owner)`, like `AgentSkill.order`.
+- The **effective set** of an agent run is the agent's own Attachments in
+  `order`, then the Attachments of each of its linked, globally-enabled
+  Skills in `agent_skills.order`, with duplicate paths removed (first
+  occurrence wins).
+- Attachments are per-repo and do **not** pin a document version (see
+  **Known gap: Project context base-branch reads**).
+
+## Project context block
+
+The `## Project context` section of the review prompt, built from the
+effective set. Every document is emitted with its path (`Path: <path>`) and
+wrapped in `<untrusted>` delimiters, exactly like the diff and PR
+description: it is data the agent may consult, never instructions, and there
+is no LLM quarantine step. Built by the pure
+`serializeProjectContext` in `reviewer-core/src/project-context/` and fed to
+`assemblePrompt` via `PromptParts.specs`. Omitted entirely when the effective
+set is empty. The exact injected text, per-document token estimates, and any
+skipped documents are stored on the run trace (`project_context`;
+`specs_read` holds the paths). An effective-set total over 8,000 estimated
+tokens raises a warning in the UI; it does not truncate.
+
+## Known gap: Project context base-branch reads
+
+At run time each document is read **once, from `origin/<default branch>`**
+(`git show`), so the run sees a stable snapshot of what is on the base
+branch. The Project Context page, however, edits the clone's **working
+tree**. A document created or edited only locally is therefore **not**
+injected into runs until it is on the base branch; a document attached but
+absent there is skipped and recorded in the trace's `skipped` list. This is
+deliberate (spec AC-25, confirmed by the user) — the page shows a "local
+edit, not on base branch" caveat — not a bug.
+
+Related limits of the same feature:
+
+- Only runs through `ReviewRunExecutor` (`server/src/modules/reviews/run-executor.ts`)
+  get a Project context block. The CI and MCP review paths do not use
+  `run-executor` and receive none.
+- Attachments store only `path` per repo — no document version or commit is
+  pinned, so what a run sees is whatever the base branch holds at run start.
+  Same class of gap as **Known gap: skill version pinning**.
+
 ## Smart Diff
 
 A computed (never persisted) view of a PR's changed files, grouped by **file
@@ -171,3 +240,54 @@ non-deterministic (timing-, ordering-, or randomness-dependent assertions).
 It does not consume a coverage report or test-runner output — no such
 integration exists in this codebase — so its skill text frames every check
 as "from reading the diff," not as coverage-tool-backed.
+
+## Onboarding Tour
+
+A generated, stored guide to an unfamiliar **repo**, made of exactly five
+sections: **Architecture overview**, **Critical paths**, **How to run
+locally**, **Guided reading path**, and **First tasks**. One current Tour per
+repo; regenerating replaces it (no history). It is a generated artifact, not
+authored content — distinct from a **Context Document**, which is a file a
+human wrote and owns.
+
+- **Onboarding Generator** is the name of the *feature/process* that
+  produces a Tour; the artifact users read is always the **Onboarding Tour**.
+- A Tour is **stale** when the repo index it was built from is newer than
+  the Tour. Staleness is only displayed; it never triggers regeneration on
+  its own. A Tour is first created, and later refreshed, only by an explicit
+  user action.
+- **Critical path**: a file the Tour singles out because much of the repo
+  depends on it (ranked by dependents), with a one-line role.
+- **Share link**: copies the Tour's local in-app URL. Local-first — it is
+  only meaningful on the same machine.
+- Not to be confused with the **Add repository** screen, which currently
+  lives at the `/onboarding` route. That route is about adding a repo, not
+  about a Tour.
+
+## PR Brief
+
+A generated, stored one-card summary of a **pull request** for a reviewer who
+opens it cold, shown on the Overview tab. One current Brief per PR;
+regenerating replaces it (no history). It is a generated artifact, distinct
+from an **Onboarding Tour** (which is about a repo, not a PR).
+
+A Brief is made of a **summary** (what the PR does and why), **Risk areas**,
+and **Review focus**, shown next to the PR's **Intent** and **Blast radius**.
+Only the summary, Risk areas and Review focus are written by the model;
+Intent, Blast radius and diff statistics are computed facts the model is
+given, never re-derived by it. The model never reads diff hunk bodies.
+
+- **Risk area**: a concrete risk in the PR with a title, a severity
+  (`high | medium | low`) and at least one file that is part of the PR or of
+  its Blast radius. A risk with no verifiable file is dropped, not shown.
+- **Review focus**: an ordered "read these first" list. Each item is a file,
+  an optional line, and a reason. A line is shown only if it falls inside a
+  changed range of that file; otherwise the item shows the file alone.
+- **Missing data**: if the PR has no Intent or no Blast radius, the Brief is
+  still generated and says explicitly which data was unavailable.
+- A Brief is **stale** when the PR's head commit differs from the one it was
+  generated for. Staleness is only displayed; regeneration is always an
+  explicit user action.
+- The Brief's **specs** are the Attachments of the repo's enabled agents (and
+  their linked skills), deduplicated, read from the base branch like a
+  **Project context block**, and treated as untrusted data.

@@ -14,14 +14,28 @@ concerns.
 ## Inputs
 
 1. **A plan file path** (required) — a `docs/plans/<slug>.md` Development Plan, in the
-   format `planner.md` produces (Context / Architectural constraints / ADR conflicts /
+   format `implementation-planner.md` produces (Context / Architectural constraints / ADR conflicts /
    Steps / Tests to run / Out of scope). If you are not given a concrete path, and more
    than one file under `docs/plans/` is a plausible candidate for what's meant, ask
-   which one rather than guessing — mirror `planner.md`'s "ask if there's more than one
+   which one rather than guessing — mirror `implementation-planner.md`'s "ask if there's more than one
    candidate" convention. Do not proceed on a guess.
-2. **A requirements doc** (optional) — e.g. a linked GitHub issue (`gh issue view
-   <number> --comments`) or a `docs/specs/*.md` file, given to check the plan's own
-   coverage against. If none is supplied, skip Pass 1 entirely and say so in the report.
+2. **A requirements doc** — the feature spec (`docs/specs/*.md` or `<module>/specs/*.md`,
+   found via the plan's Context / `SPEC-NN`) or a linked GitHub issue (`gh issue view
+   <number> --comments`). Always look for it; use each `AC-n` as a requirement row. Skip
+   Pass 1 only if the plan truly has none, and say so in the report.
+
+## When you run
+
+You run **right after the implementer, before** `test-writer` and `architecture-reviewer`
+— missing steps found late force those two to redo their work. Be fast and cheap:
+
+- **Do not run tests or typecheck.** The implementer already ran targeted tests and
+  `test-writer` owns the full run; read the implementer's report instead and note what it
+  claims. (This replaces any "re-run the command yourself" step below.)
+- If tests already exist (a re-run after `test-writer`), also grep for each `AC-n` in
+  test files and list AC → test in the report as information, not a gate.
+- If the verdict is COMPLETE and the spec is `approved`, say the spec can move to
+  `Status: implemented` — you don't edit it; the user or `specreator` does.
 
 ## Two passes
 
@@ -70,9 +84,8 @@ stack:
   `server/src/db/migrations/` (or wherever this repo's Drizzle migrations live) and
   confirm `pnpm db:migrate` would pick it up; a schema edit with no migration file is a
   gap even if the Drizzle schema source itself was changed.
-- A "Tests to run" command from the plan that was never actually run, or was run and is
-  failing — don't take an implementer's report of "tests pass" on faith; re-run the
-  command yourself via `Bash` when feasible, or note explicitly that you didn't.
+- A "Tests to run" command the implementer's report doesn't mention, or reports as
+  failing — flag it. Don't re-run it yourself (see "When you run").
 
 ## Cross-reference (only with a requirements doc)
 

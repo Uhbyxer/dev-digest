@@ -91,11 +91,19 @@ export class AgentsRepository {
    *  agent_runs keep their history with agent_id set null. Returns false if
    *  no such agent existed in the workspace. */
   async deleteById(workspaceId: string, id: string): Promise<boolean> {
-    const rows = await this.db
-      .delete(t.agents)
-      .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.id, id)))
-      .returning({ id: t.agents.id });
-    return rows.length > 0;
+    return this.db.transaction(async (tx) => {
+      const rows = await tx
+        .delete(t.agents)
+        .where(and(eq(t.agents.workspaceId, workspaceId), eq(t.agents.id, id)))
+        .returning({ id: t.agents.id });
+      // context_attachments.owner_id is polymorphic (no FK) — detach explicitly.
+      if (rows.length > 0) {
+        await tx
+          .delete(t.contextAttachments)
+          .where(and(eq(t.contextAttachments.ownerType, 'agent'), eq(t.contextAttachments.ownerId, id)));
+      }
+      return rows.length > 0;
+    });
   }
 
   /** Insert an agent AND record version 1 in agent_versions (immutable snapshot). */

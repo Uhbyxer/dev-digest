@@ -10,6 +10,7 @@ import { Icon } from "@devdigest/ui";
 import type { PrFile, SmartDiffGroup, SmartDiffRole } from "@/lib/types";
 import { type DiffCommentApi } from "../comments";
 import { type DiffFindingApi } from "../findings";
+import { type DiffTarget } from "../target";
 import { s, chevronFor } from "../styles";
 import { FileCard } from "../FileCard";
 
@@ -31,14 +32,21 @@ function GroupSection({
   filesByPath,
   commenting,
   findingApi,
+  target,
 }: {
   group: SmartDiffGroup;
   filesByPath: Map<string, PrFile>;
   commenting?: DiffCommentApi;
   findingApi?: DiffFindingApi;
+  target?: DiffTarget;
 }) {
   const t = useTranslations("prReview");
-  const [open, setOpen] = React.useState(!DEFAULT_COLLAPSED.has(group.role));
+  // A group holding the target file is opened even if it is collapsed by default.
+  const hasTarget = !!target && group.files.some((f) => f.path === target.file);
+  const [open, setOpen] = React.useState(!DEFAULT_COLLAPSED.has(group.role) || hasTarget);
+  React.useEffect(() => {
+    if (hasTarget) setOpen(true);
+  }, [hasTarget]);
 
   const filesWithFindings = findingApi
     ? group.files.filter((f) => (findingApi.byPath.get(f.path)?.length ?? 0) > 0).length
@@ -77,7 +85,7 @@ function GroupSection({
               deletions: gf.deletions,
               patch: null,
             };
-            return <FileCard key={gf.path} file={file} commenting={commenting} findingApi={findingApi} />;
+            return <FileCard key={gf.path} file={file} commenting={commenting} findingApi={findingApi} target={target} />;
           })}
         </div>
       )}
@@ -90,6 +98,7 @@ export function SmartDiffViewer({
   files,
   commenting,
   findingApi,
+  target,
 }: {
   groups: SmartDiffGroup[];
   /** Full PrFiles (with patch text) — Smart Diff's response carries role +
@@ -97,6 +106,7 @@ export function SmartDiffViewer({
   files: PrFile[];
   commenting?: DiffCommentApi;
   findingApi?: DiffFindingApi;
+  target?: DiffTarget;
 }) {
   const t = useTranslations("shell");
   const filesByPath = React.useMemo(() => new Map(files.map((f) => [f.path, f])), [files]);
@@ -111,7 +121,7 @@ export function SmartDiffViewer({
   return (
     <div style={s.list}>
       {groups.map((g) => (
-        <GroupSection key={g.role} group={g} filesByPath={filesByPath} commenting={commenting} findingApi={findingApi} />
+        <GroupSection key={g.role} group={g} filesByPath={filesByPath} commenting={commenting} findingApi={findingApi} target={target} />
       ))}
     </div>
   );

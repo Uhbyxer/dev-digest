@@ -1,0 +1,2 @@
+ALTER TABLE "context_attachments" ADD CONSTRAINT "context_attachments_owner_type_ck" CHECK ("context_attachments"."owner_type" IN ('agent','skill'));--> statement-breakpoint
+ALTER TABLE "context_attachments" ADD CONSTRAINT "context_attachments_order_ck" CHECK ("context_attachments"."order" >= 0);

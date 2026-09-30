@@ -35,6 +35,7 @@ import type {
 } from '@devdigest/shared';
 import { parseUnifiedDiff } from './git/diff-parser.js';
 import type { LinkedDocFetcher } from './linked-doc/index.js';
+import type { ContextDocsStore, ContextFileContent, ContextListing } from './context-docs/index.js';
 
 /**
  * Deterministic MOCK adapters for tests/dev — NO real network. Each mirrors the
@@ -255,6 +256,8 @@ export class MockGitHubClient implements GitHubClient {
 export interface MockGitOptions {
   diff?: string;
   files?: Record<string, string>;
+  /** Files at a ref, keyed by path (used by `readFileAtRef`/`listFilesAtRef`, any ref). */
+  refFiles?: Record<string, string>;
   /** Name-only diff result (drives the incremental indexer's "changed files since X" path). */
   diffNameOnly?: string[];
   /** Override `currentHead()` so tests can simulate "sha unchanged since last index". */
@@ -304,6 +307,59 @@ export class MockGitClient implements GitClient {
   }
   async readFile(_repo: RepoRef, path: string): Promise<string> {
     return this.opts.files?.[path] ?? '';
+  }
+  async listFilesAtRef(_repo: RepoRef, _ref: string, dir: string): Promise<string[]> {
+    return Object.keys(this.opts.refFiles ?? {}).filter((p) => p.startsWith(dir.replace(/\/?$/, '/')));
+  }
+  async readFileAtRef(_repo: RepoRef, _ref: string, path: string, maxBytes?: number): Promise<string | null> {
+    const c = this.opts.refFiles?.[path] ?? null;
+    if (c === null || maxBytes === undefined) return c;
+    return Buffer.byteLength(c, 'utf8') > maxBytes ? c.slice(0, maxBytes + 1) : c;
+  }
+}
+
+// ---------- Mock ContextDocsStore (in-memory, keyed by path) ----------
+export class MockContextDocsStore implements ContextDocsStore {
+  constructor(
+    public docs: Record<string, string> = {},
+    private state: ContextListing['state'] = 'ok',
+  ) {}
+
+  private meta(path: string): ContextFileContent {
+    const content = this.docs[path]!;
+    return {
+      path,
+      type: path.split('/')[1] as ContextFileContent['type'],
+      content,
+      size: Buffer.byteLength(content, 'utf8'),
+      mtime: '2026-01-01T00:00:00.000Z',
+      hash: `h${content.length}`,
+    };
+  }
+  async list(): Promise<ContextListing> {
+    return { state: this.state, files: Object.keys(this.docs).sort().map((p) => this.meta(p)) };
+  }
+  async read(_c: string, path: string) {
+    return path in this.docs ? this.meta(path) : null;
+  }
+  async stat(_c: string, path: string) {
+    if (!(path in this.docs)) return null;
+    const { content: _x, ...m } = this.meta(path);
+    return m;
+  }
+  async write(_c: string, path: string, content: string) {
+    this.docs[path] = content;
+    return this.meta(path);
+  }
+  async create(_c: string, type: ContextFileContent['type'], name: string, content = '') {
+    const path = `.devdigest/${type}/${name.endsWith('.md') ? name : `${name}.md`}`;
+    this.docs[path] = content;
+    return this.meta(path);
+  }
+  async remove(_c: string, path: string) {
+    const had = path in this.docs;
+    delete this.docs[path];
+    return had;
   }
 }
 

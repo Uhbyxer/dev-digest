@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { Provider, Review, RunTrace, SkillSource, UnifiedDiff } from '@devdigest/shared';
+import type { Provider, ProjectContextSnapshot, Review, RunTrace, SkillSource, UnifiedDiff } from '@devdigest/shared';
 import { reviewPullRequest, countBlockers, type PromptSkill } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
 import * as schema from '../../db/schema.js';
@@ -9,6 +9,7 @@ import { REVIEW_STRATEGY } from './constants.js';
 import { taskLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
 import { generateIntent } from './intent/service.js';
+import { ContextService, type RunProjectContext } from '../context/service.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -168,6 +169,10 @@ export class ReviewRunExecutor {
 
     runLog.info(`Starting review with agent "${agent.name}" (${agent.provider}/${agent.model})`);
 
+    // Project context snapshot — declared outside the try so the failure-path
+    // trace can still record what was (or wasn't) injected.
+    let projectContext: RunProjectContext | undefined;
+
     try {
       // Resolve the agent's LLM provider. (container.llm throws if the provider
       // key is missing — caught below and persisted as a failed run.)
@@ -188,6 +193,10 @@ export class ReviewRunExecutor {
       // agent.id, not on any repo-intel result below, so there's no reason to
       // wait for the (already-sequential) repo-intel chain before starting it.
       const skillsPromise = this.buildSkills(agent.id, runLog);
+
+      // Project Context — the agent's effective set (own + enabled skills'),
+      // read ONCE from the base branch. Best-effort: never fails the run.
+      projectContext = await this.buildProjectContext(repo, agent.id, runLog);
 
       // T1.3 — callers-in-prompt. Best-effort: when repo-intel is off the facade
       // returns []; we omit the section and behavior is identical to the
@@ -224,6 +233,8 @@ export class ReviewRunExecutor {
         // to the studio default. single-pass = whole diff in one call.
         strategy: agent.strategy ?? REVIEW_STRATEGY,
         ...(skills.length > 0 ? { skills } : {}),
+        // Project context docs (untrusted; assemblePrompt wraps + headings them).
+        ...(projectContext && projectContext.specs.length > 0 ? { specs: projectContext.specs } : {}),
         // T1.3 — pass the callers digest only when we built one. assemblePrompt
         // omits the section when this is empty/undefined.
         ...(callersDigest ? { callers: callersDigest } : {}),
@@ -308,7 +319,8 @@ export class ReviewRunExecutor {
         })),
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: projectContext?.snapshot.entries.map((e) => e.path) ?? [],
+        ...(projectContext ? { project_context: projectContext.snapshot } : {}),
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
@@ -337,7 +349,7 @@ export class ReviewRunExecutor {
         })
         .catch(() => undefined);
       await this.repo
-        .saveRunTrace(runId, this.traceFromBuffer(runId, pull, agent, '0/0 passed', Date.now() - start))
+        .saveRunTrace(runId, this.traceFromBuffer(runId, pull, agent, '0/0 passed', Date.now() - start, projectContext?.snapshot))
         .catch(() => undefined);
       this.container.runBus.complete(runId);
       throw err;
@@ -452,6 +464,25 @@ export class ReviewRunExecutor {
   }
 
   /**
+   * Resolve the Project context block inputs for this run (see
+   * `ContextService.resolveForRun`). Best-effort: logs and continues on error.
+   */
+  private async buildProjectContext(
+    repo: typeof schema.repos.$inferSelect,
+    agentId: string,
+    runLog: RunLogger,
+  ): Promise<RunProjectContext | undefined> {
+    try {
+      return await new ContextService(this.container).resolveForRun(repo, agentId, {
+        info: (m) => runLog.info(m),
+      });
+    } catch (err) {
+      runLog.info(`project context: failed — ${(err as Error).message}`);
+      return undefined;
+    }
+  }
+
+  /**
    * A minimal RunTrace whose `log` is the run's full SSE buffer — persisted on
    * failure/cancel (and pre-work failures) so the events (and WHY it failed)
    * survive a reload, not just the in-memory stream.
@@ -462,6 +493,7 @@ export class ReviewRunExecutor {
     agent: AgentRow,
     grounding: string,
     durationMs = 0,
+    projectContext?: ProjectContextSnapshot,
   ): RunTrace {
     return {
       config: {
@@ -477,7 +509,8 @@ export class ReviewRunExecutor {
       tool_calls: [],
       raw_output: '',
       memory_pulled: [],
-      specs_read: [],
+      specs_read: projectContext?.entries.map((e) => e.path) ?? [],
+      ...(projectContext ? { project_context: projectContext } : {}),
       log: this.container.runBus.buffer(runId).map((e) => ({ t: e.t, kind: e.kind, msg: e.msg })),
     };
   }

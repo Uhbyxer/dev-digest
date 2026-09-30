@@ -9,9 +9,36 @@
     "title": "Generate onboarding tour",
     "body": "DevDigest indexes the repo and specs, then writes a 5-section guided tour: overview, architecture, key modules, getting started, and conventions & gotchas.",
     "cta": "Generate onboarding tour",
-    "generating": "Generating…"
+    "generating": "Generating…",
+    "disabledReason": "The repo index isn't ready yet (status: {status}). Wait for indexing to finish, then generate the tour."
   },
   "loadError": {
     "title": "Couldn’t load the onboarding tour"
-  }
+  },
+  "crumbTour": "Onboarding Tour",
+  "heading": "Onboarding for {repo}",
+  "subtitle": "Generated from index of {count} files · last refreshed {time} ago",
+  "onThisPage": "On this page",
+  "notGenerated": "This section could not be generated.",
+  "dependents": "used by {count} files",
+  "sectionTitles": {
+    "overview": "Architecture overview",
+    "critical_paths": "Critical paths",
+    "run_locally": "How to run locally",
+    "reading_path": "Guided reading path",
+    "first_tasks": "First tasks"
+  },
+  "collapse": "Collapse",
+  "expand": "Expand",
+  "stale": "Stale — the repo index is newer than this tour",
+  "partialIndex": "Built from a partial index — parts of the repo may be missing.",
+  "copyMarkdown": "Copy as Markdown",
+  "shareLink": "Share link",
+  "open": "Open",
+  "copied": "Copied",
+  "copyFailed": "Could not copy to the clipboard",
+  "openCopiedPath": "Path copied — opening files in-app is not available yet",
+  "copyCommand": "Copy command: {command}",
+  "openPath": "Open {path}",
+  "mdDependents": "used by {count} files"
 }

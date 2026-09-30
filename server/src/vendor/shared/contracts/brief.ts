@@ -77,12 +77,16 @@ export const Risk = z.object({
   title: z.string(),
   explanation: z.string(),
   severity: RiskSeverity,
-  file_refs: z.array(z.string()),
+  /** Verified against the PR's files / Blast callers — at least one (ADR-0004). */
+  file_refs: z.array(z.string()).min(1),
 });
 export type Risk = z.infer<typeof Risk>;
 
+export const MAX_BRIEF_RISKS = 5;
+export const MAX_REVIEW_FOCUS = 5;
+
 export const Risks = z.object({
-  risks: z.array(Risk),
+  risks: z.array(Risk).max(MAX_BRIEF_RISKS),
 });
 export type Risks = z.infer<typeof Risks>;
 
@@ -137,11 +141,40 @@ export const SmartDiff = z.object({
 });
 export type SmartDiff = z.infer<typeof SmartDiff>;
 
+// ---- Review focus ----
+/** "Read these first". `line` is present only when it lies in a changed range of `file`. */
+export const ReviewFocusItem = z.object({
+  file: z.string(),
+  line: z.number().int().positive().optional(),
+  reason: z.string(),
+});
+export type ReviewFocusItem = z.infer<typeof ReviewFocusItem>;
+
 // ---- Composed PR Brief (pr_brief.json) ----
+/** Facts the Brief was built without; told to the model as "not available". */
+export const BriefMissing = z.enum(['intent', 'blast']);
+export type BriefMissing = z.infer<typeof BriefMissing>;
+
 export const PrBrief = z.object({
-  intent: Intent,
-  blast: BlastRadius,
+  summary: z.string(),
+  /** Null when Intent was unavailable at generation time (see `missing`). */
+  intent: Intent.nullable(),
+  /** Null when Blast radius was unavailable at generation time (see `missing`). */
+  blast: BlastRadius.nullable(),
   risks: Risks,
-  history: PrHistory,
+  review_focus: z.array(ReviewFocusItem).max(MAX_REVIEW_FOCUS),
+  /** Not part of the Brief card (out of scope, ADR-0004). */
+  history: PrHistory.optional(),
+  /** PR head commit the Brief was generated for; differs from the PR's ⇒ stale. */
+  head_sha: z.string(),
+  generated_at: z.string(),
+  missing: z.array(BriefMissing),
 });
 export type PrBrief = z.infer<typeof PrBrief>;
+
+export const PrBriefResponse = z.object({
+  brief: PrBrief.nullable(),
+  /** True when the PR head commit changed since generation. Display only. */
+  stale: z.boolean(),
+});
+export type PrBriefResponse = z.infer<typeof PrBriefResponse>;

@@ -75,6 +75,25 @@ export {
   type ConventionGroundingResult,
 } from './conventions/index.js';
 
+// Onboarding Tour: pure prompt-building, output schema and path verification.
+// The LLM call, clone reads and persistence live in server/src/modules/onboarding.
+export {
+  ONBOARDING_SCHEMA_NAME,
+  ONBOARDING_MAX_FILE_CHARS,
+  OnboardingLlmResult,
+  buildOnboardingPrompt,
+  claimedPaths,
+  verifyOnboarding,
+  type OnboardingFileSample,
+  type OnboardingPromptInput,
+  type VerifiedOnboarding,
+} from './onboarding/index.js';
+
+// PR Brief (ADR-0004): pure prompt-building, output schema, changed-range
+// parsing and verification. The LLM call and persistence live in
+// server/src/modules/brief.
+export * from './brief/index.js';
+
 // Intent layer: pure prompt-building, deterministic confidence scoring, and
 // linked-spec URL detection for PR intent/scope derivation. All I/O (the
 // LLM calls, the linked-URL fetch, persistence) lives in server/src/modules.
@@ -92,3 +111,16 @@ export {
   buildQuarantineExtractionPrompt,
   detectLinkedSpecUrl,
 } from './intent/index.js';
+
+// Project context: pure serialization of the effective Context Document set
+// (dedupe, deterministic block text, token estimate, 8k warn flag). Reading
+// the files / resolving attachments lives in server/src/modules.
+export {
+  estimateTokens,
+  PROJECT_CONTEXT_WARN_TOKENS,
+  dedupeEffectiveSet,
+  serializeProjectContext,
+  PROJECT_CONTEXT_HEADING,
+  type ProjectContextEntry,
+  type SerializedProjectContext,
+} from './project-context/index.js';

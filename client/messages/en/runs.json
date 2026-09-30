@@ -34,7 +34,8 @@
       "memoryPulled": "Memory pulled",
       "specsRead": "Specs read",
       "items": "{count, plural, one {# item} other {# items}}",
-      "none": "none"
+      "none": "none",
+      "specsOrigin": "{path} ({origin})"
     },
     "stat": {
       "duration": "DURATION",
@@ -59,6 +60,16 @@
       "args": "args",
       "result": "result",
       "previewTruncated": "(preview truncated)"
+    },
+    "projectContext": {
+      "title": "Project context — attached specs (untrusted)",
+      "copy": "Copy project context",
+      "copied": "Copied",
+      "tokens": "≈ {count} tokens",
+      "entryOrigin": "from {origin}",
+      "skippedTitle": "Skipped documents",
+      "skippedNone": "No documents were skipped.",
+      "empty": "No project context was injected."
     }
   },
   "drawer": {
@@ -68,7 +79,7 @@
     "running": "running",
     "completed": "completed",
     "copyRawOutput": "Copy raw output",
-  "copied": "Copied!",
+    "copied": "Copied!",
     "tracePending": "Trace is written when the run completes — see the Live log tab.",
     "loadingTrace": "Loading trace…",
     "noTrace": "No trace available yet."

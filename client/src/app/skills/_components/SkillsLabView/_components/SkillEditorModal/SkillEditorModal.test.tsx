@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { Skill } from "@devdigest/shared";
 import messages from "../../../../../../../messages/en/skills.json";
+import contextMessages from "../../../../../../../messages/en/context.json";
 
 const mockCreate = vi.fn().mockResolvedValue({});
 const mockUpdate = vi.fn().mockResolvedValue({});
@@ -18,7 +19,7 @@ afterEach(cleanup);
 
 function renderWithIntl(ui: React.ReactElement) {
   return render(
-    <NextIntlClientProvider locale="en" messages={{ skills: messages }}>
+    <NextIntlClientProvider locale="en" messages={{ skills: messages, context: contextMessages }}>
       {ui}
     </NextIntlClientProvider>,
   );

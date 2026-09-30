@@ -29,6 +29,7 @@ import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
+import { FsContextDocsStore, type ContextDocsStore } from '../adapters/context-docs/index.js';
 import { fetchLinkedDoc, type LinkedDocFetcher } from '../adapters/linked-doc/index.js';
 
 /**
@@ -54,6 +55,8 @@ export interface ContainerOverrides {
   tokenizer?: Tokenizer;
   /** Intent layer's linked-spec fetch adapter — tests inject a fake, no real network. */
   linkedDocFetcher?: LinkedDocFetcher;
+  /** Project Context working-tree doc store — tests inject an in-memory mock. */
+  contextDocs?: ContextDocsStore;
 }
 
 export class Container {
@@ -80,6 +83,7 @@ export class Container {
   private _tokenizer?: Tokenizer;
   private _priceBook?: PriceBook;
   private _linkedDocFetcher?: LinkedDocFetcher;
+  private _contextDocs?: ContextDocsStore;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -133,6 +137,13 @@ export class Container {
     if (this.overrides.tokenizer) return this.overrides.tokenizer;
     this._tokenizer ??= new TiktokenTokenizer();
     return this._tokenizer;
+  }
+
+  /** Project Context Document store (confined to `.devdigest/{specs,docs,insights}`). */
+  get contextDocs(): ContextDocsStore {
+    if (this.overrides.contextDocs) return this.overrides.contextDocs;
+    this._contextDocs ??= new FsContextDocsStore();
+    return this._contextDocs;
   }
 
   /** Linked-spec URL fetcher for the intent layer (best-effort, SSRF-guarded). */

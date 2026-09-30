@@ -44,7 +44,11 @@ tsconfig path aliases, not published modules.
 
 ### Issue tracker
 
-GitHub Issues via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Local markdown under `.scratch/<feature>/` (spec + one file per ticket). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

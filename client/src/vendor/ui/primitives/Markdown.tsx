@@ -2,8 +2,11 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-/** Markdown renderer (replaces prototype mdLite). Inline + GFM. */
-export function Markdown({ children }: { children?: string | null }) {
+/** Markdown renderer (replaces prototype mdLite). Inline + GFM.
+ *  `untrusted`: for repo-sourced content — images are never loaded (rendered as
+ *  their alt text, so no remote fetch/leak) and links open with
+ *  rel="noopener noreferrer" target="_blank". */
+export function Markdown({ children, untrusted = false }: { children?: string | null; untrusted?: boolean }) {
   if (!children) return null;
   return (
     <div className="dd-md" style={{ fontSize: "inherit", lineHeight: 1.55 }}>
@@ -28,8 +31,13 @@ export function Markdown({ children }: { children?: string | null }) {
               {children}
             </code>
           ),
+          ...(untrusted ? { img: ({ alt }) => <>{alt ?? ""}</> } : {}),
           a: ({ children, href }) => (
-            <a href={href} style={{ color: "var(--accent-text)", textDecoration: "underline" }}>
+            <a
+              href={href}
+              {...(untrusted ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              style={{ color: "var(--accent-text)", textDecoration: "underline" }}
+            >
               {children}
             </a>
           ),

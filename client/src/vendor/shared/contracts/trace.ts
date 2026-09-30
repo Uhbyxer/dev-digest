@@ -41,9 +41,10 @@ export const PromptAssembly = z.object({
   skills: z.string().nullish(),
   memory: z.string().nullish(),
   specs: z.string().nullish(),
-  /** Callers-of-changed-symbols digest (repo-intel); null when absent. */
+  /** Callers-of-changed-symbols digest (T1.3); null when absent. */
   callers: z.string().nullish(),
-  /** Repo skeleton / map (repo-intel); null when absent. */
+  /** Repo skeleton / map (T3); null when absent. Enables per-slot token
+      attribution in the run trace. */
   repo_map: z.string().nullish(),
   /** PR author's description/body (truncated); null when absent. */
   pr_description: z.string().nullish(),
@@ -68,6 +69,15 @@ export const RunStats = z.object({
 });
 export type RunStats = z.infer<typeof RunStats>;
 
+/** Snapshot of the Project context block injected into a run (AC-35). */
+export const ProjectContextSnapshot = z.object({
+  /** Full serialized block exactly as injected (untrusted). */
+  text: z.string(),
+  entries: z.array(z.object({ path: z.string(), origin: z.string(), tokens: z.number().int() })),
+  skipped: z.array(z.object({ path: z.string(), reason: z.string() })),
+});
+export type ProjectContextSnapshot = z.infer<typeof ProjectContextSnapshot>;
+
 /** The single-document trace stored in `run_traces.trace`. */
 export const RunTrace = z.object({
   config: z.object({
@@ -84,6 +94,8 @@ export const RunTrace = z.object({
   raw_output: z.string(),
   memory_pulled: z.array(MemoryPulled),
   specs_read: z.array(z.string()),
+  /** Optional so traces written before Project Context stay valid. */
+  project_context: ProjectContextSnapshot.nullish(),
   log: z.array(RunLogLine),
 });
 export type RunTrace = z.infer<typeof RunTrace>;

@@ -20,5 +20,135 @@
     "loadError": "Couldn’t load spec",
     "save": "Save",
     "saving": "Saving…"
+  },
+  "page": {
+    "crumb": "Project Context",
+    "repoFallback": "repository",
+    "subtitle": "Markdown documents under .devdigest/specs, docs and insights. Attach them to agents and skills as untrusted grounding context.",
+    "folders": ".devdigest/'{'specs,docs,insights'}'/"
+  },
+  "types": {
+    "specs": "specs",
+    "docs": "docs",
+    "insights": "insights"
+  },
+  "list": {
+    "title": "Project Context",
+    "count": "{count} documents",
+    "add": "Add",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "newDoc": "New document",
+    "upload": "Upload .md",
+    "usedBy": "Used by {count, plural, one {# agent} other {# agents}}",
+    "missing": "missing",
+    "tokens": "≈ {count} tokens",
+    "empty": "No documents",
+    "loadError": "Couldn’t load documents",
+    "retry": "Retry",
+    "filesLabel": "Context documents"
+  },
+  "emptyState": {
+    "noClone": {
+      "title": "Repository not cloned yet",
+      "body": "Sync this repository first, then add Markdown files under .devdigest/specs/, .devdigest/docs/ or .devdigest/insights/."
+    },
+    "noFolders": {
+      "title": "No context folders found",
+      "body": "Create .devdigest/specs/, .devdigest/docs/ or .devdigest/insights/ in the repository (or add a document here) and they will show up."
+    },
+    "noDocs": {
+      "title": "No context documents yet",
+      "body": "Add a Markdown document to give agents grounding context."
+    },
+    "selectDoc": "Select a document to preview it."
+  },
+  "viewer": {
+    "preview": "Preview",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "discard": "Discard changes",
+    "editorLabel": "Document content",
+    "saved": "Saved.",
+    "localEditCaveat": "Local edit, not on base branch. Runs read documents from the base branch, so commit and push this change for it to take effect.",
+    "conflict": "This file changed on disk since you opened it. Your edits are kept below and were not saved.",
+    "conflictReload": "Load disk version",
+    "saveError": "Couldn’t save the document. Your edits are still here.",
+    "loadError": "Couldn’t load the document",
+    "unsaved": "Unsaved changes",
+    "empty": "This document is empty.",
+    "usedBy": "Used by {count, plural, one {# agent} other {# agents}}",
+    "tokens": "≈ {count} tokens",
+    "delete": "Delete"
+  },
+  "create": {
+    "title": "New document",
+    "nameLabel": "File name",
+    "namePlaceholder": "e.g. public-api.md",
+    "typeLabel": "Folder",
+    "submit": "Create",
+    "creating": "Creating…",
+    "cancel": "Cancel",
+    "error": "Couldn’t create the document.",
+    "nameRequired": "Enter a file name."
+  },
+  "upload": {
+    "title": "Upload Markdown",
+    "fileLabel": "Markdown file (.md)",
+    "typeLabel": "Folder",
+    "submit": "Upload",
+    "uploading": "Uploading…",
+    "cancel": "Cancel",
+    "notMarkdown": "Only .md files can be uploaded.",
+    "tooLarge": "File is larger than {kb} KB.",
+    "error": "Couldn’t upload the file.",
+    "noFile": "Choose a file."
+  },
+  "delete": {
+    "title": "Delete document",
+    "body": "Delete {path}? The file is removed from the clone and detached from every agent and skill. This can’t be undone.",
+    "confirm": "Delete",
+    "deleting": "Deleting…",
+    "cancel": "Cancel",
+    "error": "Couldn’t delete the document."
+  },
+  "attachments": {
+    "title": "Project context",
+    "skillTitle": "Project context to use",
+    "attached": "{attached} of {total} attached",
+    "order": "Order matters: earlier documents appear earlier in the assembled ## Project context block. Toggle to attach.",
+    "skillNote": "Any agent using this skill inherits these documents.",
+    "filter": "Filter documents…",
+    "filterLabel": "Filter documents",
+    "preview": "Preview",
+    "hidePreview": "Hide preview",
+    "previewFor": "Preview {path}",
+    "tokens": "≈ {count} tokens",
+    "injectedNote": "Injected as an untrusted block (## Project context) into every run.",
+    "overThreshold": "Heavy context: this set is over {threshold} tokens and may crowd out the diff.",
+    "tooLarge": "{path} is larger than {kb} KB and can’t be attached.",
+    "missing": "missing",
+    "missingHint": "File no longer exists; it will be skipped at run time.",
+    "moveUp": "Move {path} up",
+    "moveDown": "Move {path} down",
+    "moved": "Moved {path} to position {position} of {total}.",
+    "dragHandle": "Drag to reorder {path}",
+    "reorderHelp": "Use the move buttons or drag to change the order.",
+    "empty": "No context documents in this repository.",
+    "emptyLink": "Add documents on the Project Context page",
+    "noMatches": "No documents match your filter.",
+    "loadError": "Couldn’t load context attachments",
+    "saveError": "Couldn’t save attachments.",
+    "noRepo": "Select a repository to manage project context.",
+    "serializesAs": "Serializes as",
+    "serializesEmpty": "Nothing attached.",
+    "attachedList": "Attached documents",
+    "availableList": "Other documents",
+    "tabSkillHint": "Documents attached here apply in the active repository."
+  },
+  "editorTabs": {
+    "details": "Details",
+    "context": "Context"
   }
 }

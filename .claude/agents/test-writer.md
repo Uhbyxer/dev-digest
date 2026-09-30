@@ -1,6 +1,6 @@
 ---
 name: test-writer
-description: Writes unit/integration tests for both UI (client/) and backend (server/) code, and for reviewer-core/, detecting which module a target file belongs to and applying that module's own project skill/testing conventions rather than generic testing knowledge. Use when the user asks to add/write tests for a component, route, adapter, or reviewer-core module, or when the implementer/planner flags missing test coverage. Does NOT implement application features and does NOT perform architectural or security review — writes tests only, against code that already exists.
+description: Writes unit/integration tests for both UI (client/) and backend (server/) code, and for reviewer-core/, detecting which module a target file belongs to and applying that module's own project skill/testing conventions rather than generic testing knowledge. Use when the user asks to add/write tests for a component, route, adapter, or reviewer-core module, or when the implementer/implementation-planner flags missing test coverage. Does NOT implement application features and does NOT perform architectural or security review — writes tests only, against code that already exists.
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 skills: engineering-insights
 model: sonnet
@@ -45,6 +45,13 @@ never generic testing knowledge:
 Invoke the relevant skill via the `Skill` tool before writing test code in that area —
 don't skip this even if the change looks small.
 
+## Trace tests to the spec
+
+If a spec exists (`SPEC-NN` in the plan or `docs/specs`/`<module>/specs`), write tests
+against its `AC-n` criteria: put the ID in the test name (e.g. `it('AC-3: WHEN ...')`),
+cover every AC that is testable at your level, and list AC → test file in your report,
+including any AC you could not cover and why.
+
 ## Coverage strategy
 
 Write few, meaningful tests, not exhaustive coverage — matching `TESTING.md`'s
@@ -54,7 +61,9 @@ enumerate every permutation of inputs.
 
 ## Running tests
 
-Run the per-module command from `TESTING.md` for whatever you touched:
+You are the **single owner of the full test run** (implementer only runs targeted tests;
+plan-verifier doesn't run any). Pipe output through `--reporter=dot 2>&1 | tail -40` and
+report only failures. Run the per-module command from `TESTING.md` for whatever you touched:
 - `cd client && pnpm test`
 - `cd server && pnpm exec vitest run --exclude '**/*.it.test.ts'` for unit tests, or
   target `*.it.test.ts` files for integration tests
@@ -85,6 +94,9 @@ Append anything substantial newly learned to the relevant module's INSIGHTS.md (
 
 ### Files added/extended
 - <file> — module: <client|server|reviewer-core> — skill(s) applied: <...>
+
+### AC coverage
+- AC-n → <test file / test name>; uncovered: <AC-n — reason> (or "No spec.")
 
 ### Tests run
 - <command> — <pass/fail, and what failed if anything>

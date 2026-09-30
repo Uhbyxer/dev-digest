@@ -9,7 +9,9 @@ import {
   vector,
   index,
   uniqueIndex,
+  check,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { workspaces } from './core';
 import { repos } from './repos';
 
@@ -124,3 +126,45 @@ export const onboarding = pgTable('onboarding', {
   json: jsonb('json').notNull(),
   generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+/**
+ * `context_attachments` — Project Context documents attached (ordered) to an
+ * agent or a skill, per repo. Polymorphic owner (`owner_type` + `owner_id`, no
+ * FK: cleanup on agent/skill delete is done by their repositories). `path` is a
+ * repo-relative file path under `.devdigest/{specs,docs,insights}/` — the
+ * document is a FILE, not a row, so a missing file leaves a dangling row that
+ * the UI flags. `order` uniqueness is kept by rewriting a set transactionally
+ * (delete + insert), never by in-place updates.
+ */
+export const contextAttachments = pgTable(
+  'context_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repoId: uuid('repo_id')
+      .notNull()
+      .references(() => repos.id, { onDelete: 'cascade' }),
+    ownerType: text('owner_type', { enum: ['agent', 'skill'] }).notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    path: text('path').notNull(),
+    order: integer('order').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pathUq: uniqueIndex('context_attachments_owner_path_uq').on(
+      t.repoId,
+      t.ownerType,
+      t.ownerId,
+      t.path,
+    ),
+    orderUq: uniqueIndex('context_attachments_owner_order_uq').on(
+      t.repoId,
+      t.ownerType,
+      t.ownerId,
+      t.order,
+    ),
+    repoPathIdx: index('context_attachments_repo_path_idx').on(t.repoId, t.path),
+    ownerIdx: index('context_attachments_owner_idx').on(t.ownerType, t.ownerId),
+    ownerTypeCk: check('context_attachments_owner_type_ck', sql`${t.ownerType} IN ('agent','skill')`),
+    orderCk: check('context_attachments_order_ck', sql`${t.order} >= 0`),
+  }),
+);

@@ -3,7 +3,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { SectionLabel, Button } from "@devdigest/ui";
-import { DiffViewer, SmartDiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import { DiffViewer, SmartDiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffTarget } from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment, usePrReviews, usePrSmartDiff, useFindingAction } from "@/lib/hooks/reviews";
 import { notify } from "@/lib/toast";
 import type { FindingActionKind, FindingRecord, PrFile } from "@devdigest/shared";
@@ -14,9 +14,11 @@ interface DiffTabProps {
   files: PrFile[];
   /** Inline commenting is offered only on open PRs (GitHub rejects otherwise). */
   canComment?: boolean;
+  /** `?file=&line=` deep link (e.g. from a Review focus item): expand that file, scroll to the line. */
+  target?: DiffTarget;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
+export function DiffTab({ prId, filesCount, files, canComment, target }: DiffTabProps) {
   const t = useTranslations("prReview");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
@@ -119,9 +121,9 @@ export function DiffTab({ prId, filesCount, files, canComment }: DiffTabProps) {
         Files changed · {filesCount} files
       </SectionLabel>
       {view === "smart" ? (
-        <SmartDiffViewer groups={smartDiff?.groups ?? []} files={files} commenting={commenting} findingApi={findingApi} />
+        <SmartDiffViewer groups={smartDiff?.groups ?? []} files={files} commenting={commenting} findingApi={findingApi} target={target} />
       ) : (
-        <DiffViewer files={files} commenting={commenting} findingApi={findingApi} />
+        <DiffViewer files={files} commenting={commenting} findingApi={findingApi} target={target} />
       )}
     </section>
   );
