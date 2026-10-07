@@ -16,6 +16,7 @@ import { GREEN, RED, DIM, RESET, rateColor } from "./ansi.js";
 import { gitInfo } from "./git.js";
 import { countTests, runVitestOnce } from "./run-vitest.js";
 import { RESULTS_DIR } from "./artifacts/paths.js";
+import { MAX_RUNS } from "./config.js";
 import { aggregate, loadRecords, recordCount, type NodeAggregate, type Stats } from "./records/stats.js";
 
 /**
@@ -70,9 +71,8 @@ function printTest(agg: NodeAggregate, times: number): void {
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  // Cap runs at 2 to keep token spend bounded — LLM sessions are expensive, and 2 runs is enough
-  // to catch a blatantly flaky case. Bump MAX_TIMES if you deliberately want a fuller stability run.
-  const MAX_TIMES = 2;
+  // Runs are capped (EVAL_MAX_RUNS, default 2) to keep token spend bounded — see config.ts.
+  const MAX_TIMES = MAX_RUNS;
   let times = MAX_TIMES;
   let label: string | undefined;
   const vitestArgs: string[] = [];
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
     else vitestArgs.push(a);
   }
   if (vitestArgs.length === 0 || !Number.isFinite(times) || times < 1) {
-    console.error("usage: pnpm eval:repeat <vitest pattern> [-n times<=2] [-t testNamePattern] [--label name]");
+    console.error("usage: pnpm eval:repeat <vitest pattern> [-n times<=${MAX_TIMES}] [-t testNamePattern] [--label name]");
     process.exit(1);
   }
   if (times > MAX_TIMES) {

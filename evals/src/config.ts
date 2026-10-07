@@ -15,6 +15,12 @@ export const MAX_TURNS = Number(process.env.EVAL_MAX_TURNS ?? "8");
 export const EVAL_CONFIG = process.env.EVAL_CONFIG ?? "candidate";
 export const IS_BASELINE = EVAL_CONFIG === "baseline";
 
+// --- Repeat budget ----------------------------------------------------------
+// Max runs per configuration for eval:repeat and eval:benchmark. Every run is a real LLM session
+// (and a judge call), so the default keeps spend bounded; 2 runs still reveals a blatantly flaky
+// case. Raise it deliberately for a fuller stability run: EVAL_MAX_RUNS=5 pnpm eval:benchmark ...
+export const MAX_RUNS = Math.max(1, Number(process.env.EVAL_MAX_RUNS ?? "2") || 2);
+
 // --- Scoring / statistics thresholds ---------------------------------------
 export const DEFAULT_THRESHOLD = 0.6; // judge score gate for a quality case
 export const FLAKY_LOW = 0.2; // pass rate strictly inside (20%, 80%) is "flaky"

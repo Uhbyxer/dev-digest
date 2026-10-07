@@ -65,6 +65,13 @@ export type WorkflowCase =
       expectSubagents?: string[];
       expectSkills?: string[];
       expectFilesRead?: string[];
+      /** Substrings (case-insensitive) that must ALL appear in the final answer. Proves knowledge that
+       *  arrives WITHOUT a Read call (e.g. a nested CLAUDE.md the harness auto-loads). Disables the
+       *  early stop, because the final text only exists once the session finishes. */
+      expectAnswerIncludes?: string[];
+      /** Path fragments that must NOT appear among the files read (e.g. a do-not-touch folder). Also
+       *  disables the early stop: absence can only be judged on the full trace. */
+      expectNoFilesRead?: string[];
       maxTurns?: number;
     };
 
@@ -152,12 +159,15 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         const skillEngaged = (p: { skillsInvoked: string[]; filesRead: string[] }, skill: string) =>
           p.skillsInvoked.some((s) => s === skill || s.endsWith(`:${skill}`)) ||
           p.filesRead.some((f) => f.includes(`skills/${skill}/SKILL.md`));
+        const needsFullRun = Boolean(c.expectAnswerIncludes?.length || c.expectNoFilesRead?.length);
         const result = await workflowTask(c.prompt, {
           maxTurns: c.maxTurns,
-          stopWhen: (p) =>
-            subs.every((s) => p.subagents.includes(s)) &&
-            skls.every((s) => skillEngaged(p, s)) &&
-            files.every((f) => p.filesRead.some((r) => r.includes(f))),
+          stopWhen: needsFullRun
+            ? undefined
+            : (p) =>
+                subs.every((s) => p.subagents.includes(s)) &&
+                skls.every((s) => skillEngaged(p, s)) &&
+                files.every((f) => p.filesRead.some((r) => r.includes(f))),
         });
         logTrace(c.name, result);
         try {
@@ -175,6 +185,14 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
               result.filesRead.some((f) => f.includes(file)),
               `${file} not read | reads: ${result.filesRead.join(", ")}`,
             ).toBe(true);
+          }
+          for (const fragment of c.expectNoFilesRead ?? []) {
+            const hit = result.filesRead.filter((f) => f.includes(fragment));
+            expect(hit, `forbidden path "${fragment}" was read: ${hit.join(", ")}`).toEqual([]);
+          }
+          if (c.expectAnswerIncludes?.length) {
+            const missing = c.expectAnswerIncludes.filter((s) => patternMatch(result.text, [s]) < 1);
+            expect(missing, `answer is missing: ${missing.join(" | ")}\nanswer:\n${result.text}`).toEqual([]);
           }
           expect(result.isError).toBe(false);
         } finally {

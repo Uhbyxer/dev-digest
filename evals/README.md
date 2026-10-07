@@ -421,8 +421,8 @@ pnpm vitest run src/records/stats.test.ts       # the only non-model unit test (
 ### `eval:repeat` — stability of one thing
 
 ```bash
-pnpm eval:repeat <vitest pattern> [-n times=5] [-t testNamePattern] [--label name]
-pnpm eval:repeat skills/onion-architecture -n 5 --label baseline
+pnpm eval:repeat <vitest pattern> [-n times, max 2] [-t testNamePattern] [--label name]
+pnpm eval:repeat skills/onion-architecture -n 2 --label baseline
 ```
 Runs the pattern N times, then prints per-test pass rate, a per-**practice** table
 (`passed/total (pct)`), and metric stats (`turns`, `duration_ms`, `tokens_out` as mean ± stddev;
@@ -435,21 +435,25 @@ The primary "before vs after a change" workflow. **Capture the baseline label BE
 there is no way to reconstruct it afterwards short of reverting.
 
 ```bash
-pnpm eval:repeat skills/onion-architecture -n 5 --label baseline   # BEFORE the edit
+pnpm eval:repeat skills/onion-architecture -n 2 --label baseline   # BEFORE the edit
 #   ...edit SKILL.md...
-pnpm eval:repeat skills/onion-architecture -n 5 --label candidate  # AFTER the edit
+pnpm eval:repeat skills/onion-architecture -n 2 --label candidate  # AFTER the edit
 pnpm eval:delta baseline candidate
 ```
 Shows the delta at three levels: per-test pass rate, per-**practice** (which practice
 improved/regressed — the main signal), and metrics (`baseline → candidate (±diff)`). Green =
 improved, red = regressed, dim = unchanged. A practice on one side only renders `— → X%`.
 
+> **Run cap.** `eval:repeat` and `eval:benchmark` never run more than **2** times per configuration —
+> each run is a real LLM session plus a judge call, and 2 is enough to expose a blatantly flaky case.
+> A larger `-n` is clamped with a notice. To lift the cap on purpose: `EVAL_MAX_RUNS=5 pnpm eval:benchmark ...`.
+
 ### `eval:benchmark` — measured lift (with vs without the artifact)
 
 ```bash
-pnpm eval:benchmark <vitest pattern> [-n runs=5]
-pnpm eval:benchmark skills/engineering-insights -n 5    # a skill
-pnpm eval:benchmark agents/architecture-reviewer -n 5   # an agent
+pnpm eval:benchmark <vitest pattern> [-n runs, max 2]
+pnpm eval:benchmark skills/engineering-insights -n 2    # a skill
+pnpm eval:benchmark agents/architecture-reviewer -n 2   # an agent
 ```
 
 **candidate vs baseline** — the whole idea. The benchmark runs the *same test case* in two
