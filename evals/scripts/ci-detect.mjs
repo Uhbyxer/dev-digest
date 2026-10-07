@@ -53,10 +53,15 @@ const agentNames = touched(
   /^evals\/agents\/([^/]+)\//,
 );
 
-const skills = skillNames.filter((n) => hasEvals("skills", n));
-const skippedSkills = skillNames.filter((n) => !hasEvals("skills", n));
-const agents = agentNames.filter((n) => hasEvals("agents", n));
-const skippedAgents = agentNames.filter((n) => !hasEvals("agents", n));
+// An eval folder whose artifact does not exist (e.g. evals/agents/<x>/ shipped without
+// .claude/agents/<x>.md) can only fail with "agent not found" — treat it as skipped, not as a suite.
+const skillExists = (n) => existsSync(join(REPO_ROOT, ".claude", "skills", n, "SKILL.md"));
+const agentExists = (n) => existsSync(join(REPO_ROOT, ".claude", "agents", `${n}.md`));
+
+const skills = skillNames.filter((n) => hasEvals("skills", n) && skillExists(n));
+const skippedSkills = skillNames.filter((n) => !skills.includes(n));
+const agents = agentNames.filter((n) => hasEvals("agents", n) && agentExists(n));
+const skippedAgents = agentNames.filter((n) => !agents.includes(n));
 
 // The workflow tier measures the LIVE harness, so anything that changes it re-triggers it:
 // the root or .claude CLAUDE.md, any agent definition, the workflow cases, or the engine itself.
@@ -84,8 +89,8 @@ console.error(`changed files : ${changed.length}`);
 console.error(`skills → run  : ${skills.join(", ") || "(none)"}`);
 console.error(`agents → run  : ${agents.join(", ") || "(none)"}`);
 console.error(`workflow tier : ${runWorkflow ? "run" : "skip"}`);
-if (skippedSkills.length) console.error(`SKIP skills (no evals): ${skippedSkills.join(", ")}`);
-if (skippedAgents.length) console.error(`SKIP agents (no evals): ${skippedAgents.join(", ")}`);
+if (skippedSkills.length) console.error(`SKIP skills (no evals or no SKILL.md): ${skippedSkills.join(", ")}`);
+if (skippedAgents.length) console.error(`SKIP agents (no evals or no agent file): ${skippedAgents.join(", ")}`);
 
 // Markdown summary on the workflow run page (no UI work needed — it is just a job summary).
 const summary = process.env.GITHUB_STEP_SUMMARY;
