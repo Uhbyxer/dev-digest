@@ -9,11 +9,13 @@
 # Models (all through OpenRouter; no UI, set here or via repo Actions *variables*):
 #   EVAL_MODEL        content tier (skills)      default deepseek/deepseek-v4-flash   (var EVAL_MODEL)
 #   EVAL_JUDGE_MODEL  LLM judge                  default deepseek/deepseek-v4-flash   (var EVAL_JUDGE_MODEL)
-#   EVAL_TOOL_MODEL   tool tiers (agents + workflow) default google/gemini-2.5-flash  (var EVAL_TOOL_MODEL)
-# The tool tiers use a separate model on purpose: they assert real tool use (subagent dispatch, doc
-# reads, skill activation) and some cheap models do the work inline instead of dispatching — see
-# evals/README.md, "Which cheap model". Switch any of them with a repo variable or, for a one-off
-# manual run, the workflow_dispatch inputs below.
+#   EVAL_TOOL_MODEL   tool tiers (agents + workflow) default deepseek/deepseek-v4-flash (var EVAL_TOOL_MODEL)
+# The tool tiers have their own knob because they assert real tool use (subagent dispatch, doc reads,
+# skill activation), and some cheap models do the work inline instead of dispatching (see
+# evals/README.md, "Which cheap model"). DeepSeek is the default everywhere; if the dispatch case
+# goes red on it, set the repo variable EVAL_TOOL_MODEL=google/gemini-2.5-flash (the model the README
+# measured as dispatching). Any of them can be overridden by a repo variable or, for a one-off manual
+# run, the workflow_dispatch inputs below.
 #
 # Gating: only `detect` and `static` block a PR. The model-backed jobs are continue-on-error until
 # they have proven stable (skill activation is non-deterministic). They need the OPENROUTER_API_KEY
@@ -38,7 +40,7 @@ on:
         required: false
         default: ''
       tool_model:
-        description: 'Tool-tier model (agents, workflow). Empty = repo var EVAL_TOOL_MODEL or google/gemini-2.5-flash'
+        description: 'Tool-tier model (agents, workflow). Empty = repo var EVAL_TOOL_MODEL or deepseek/deepseek-v4-flash'
         required: false
         default: ''
 
@@ -165,7 +167,7 @@ jobs:
       EVAL_BACKEND: openrouter
       OPENROUTER_BASE_URL: http://localhost:4000
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      EVAL_MODEL: ${{ inputs.tool_model || vars.EVAL_TOOL_MODEL || 'google/gemini-2.5-flash' }}
+      EVAL_MODEL: ${{ inputs.tool_model || vars.EVAL_TOOL_MODEL || 'deepseek/deepseek-v4-flash' }}
       EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || 'deepseek/deepseek-v4-flash' }}
       EVAL_QUIET: '1'
     steps:
@@ -204,7 +206,7 @@ jobs:
       EVAL_BACKEND: openrouter
       OPENROUTER_BASE_URL: http://localhost:4000
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      EVAL_MODEL: ${{ inputs.tool_model || vars.EVAL_TOOL_MODEL || 'google/gemini-2.5-flash' }}
+      EVAL_MODEL: ${{ inputs.tool_model || vars.EVAL_TOOL_MODEL || 'deepseek/deepseek-v4-flash' }}
       EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || 'deepseek/deepseek-v4-flash' }}
       EVAL_QUIET: '1'
     steps:

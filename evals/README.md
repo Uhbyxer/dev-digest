@@ -191,9 +191,9 @@ workflow cases:
 > **This repo's actual workflow is `.github/workflows/evals.yml`** (the YAML below is the generic
 > example). It runs `ci-detect.mjs` on the PR's changed files, then: a blocking model-free `static`
 > job (typecheck, CLAUDE.md integrity, SKILL.md quality for touched skills) and non-blocking
-> `skills` / `agents` / `workflow` jobs on OpenRouter. Models are job parameters: `EVAL_MODEL` and
-> `EVAL_JUDGE_MODEL` default to `deepseek/deepseek-v4-flash`, the tool tiers use `EVAL_TOOL_MODEL`
-> (default `google/gemini-2.5-flash`, because some cheap models skip subagent dispatch). Override with
+> `skills` / `agents` / `workflow` jobs on OpenRouter. Models are job parameters: `EVAL_MODEL`,
+> `EVAL_JUDGE_MODEL` and the tool tiers' `EVAL_TOOL_MODEL` all default to `deepseek/deepseek-v4-flash`
+> (if the dispatch case fails on it, set `EVAL_TOOL_MODEL=google/gemini-2.5-flash`). Override with
 > repo Actions variables of the same names, or the `workflow_dispatch` inputs. Needs the
 > `OPENROUTER_API_KEY` Actions secret; PRs from forks skip the model jobs.
 
