@@ -6,12 +6,12 @@
  *
  *   .claude/skills/<name>/**   OR  evals/skills/<name>/**   → run evals/skills/<name>  (content tier)
  *   .claude/agents/<name>.md   OR  evals/agents/<name>/**   → run evals/agents/<name>  (tool tier)
- *   CLAUDE.md / .claude/CLAUDE.md / any agent / engine change → run the workflow tier
+ *   any CLAUDE.md (root, .claude/, or a package's) / any agent / engine change → run the workflow tier
  *
  * A changed artifact with NO written evals is NOT a failure: it is reported on the `skipped_*`
  * outputs so the job can print a visible "SKIP <name> (no evals)" line instead of going red.
  *
- * Emits GitHub Actions step outputs (skills, agents, run_workflow, skipped_skills, skipped_agents)
+ * Emits GitHub Actions step outputs (skills, agents, run_workflow, touched_skills, skipped_skills, skipped_agents)
  * to $GITHUB_OUTPUT. Pure filesystem + string work — no deps.
  */
 
@@ -62,8 +62,7 @@ const skippedAgents = agentNames.filter((n) => !hasEvals("agents", n));
 // the root or .claude CLAUDE.md, any agent definition, the workflow cases, or the engine itself.
 const runWorkflow = changed.some(
   (f) =>
-    f === "CLAUDE.md" ||
-    f === ".claude/CLAUDE.md" ||
+    /(^|\/)CLAUDE\.md$/.test(f) || // root, .claude/, or any package (server/, client/, mcp/, …)
     /^\.claude\/agents\/.+\.md$/.test(f) ||
     /^evals\/workflow\//.test(f) ||
     /^evals\/src\//.test(f),
@@ -73,6 +72,7 @@ const out = process.env.GITHUB_OUTPUT;
 const write = (k, v) => (out ? appendFileSync(out, `${k}=${v}\n`) : console.log(`${k}=${v}`));
 
 write("skills", JSON.stringify(skills));
+write("touched_skills", skillNames.join(" ")); // every changed skill, with or without evals (static gate)
 write("agents", JSON.stringify(agents));
 write("run_workflow", String(runWorkflow));
 write("skipped_skills", skippedSkills.join(" "));
@@ -86,3 +86,20 @@ console.error(`agents → run  : ${agents.join(", ") || "(none)"}`);
 console.error(`workflow tier : ${runWorkflow ? "run" : "skip"}`);
 if (skippedSkills.length) console.error(`SKIP skills (no evals): ${skippedSkills.join(", ")}`);
 if (skippedAgents.length) console.error(`SKIP agents (no evals): ${skippedAgents.join(", ")}`);
+
+// Markdown summary on the workflow run page (no UI work needed — it is just a job summary).
+const summary = process.env.GITHUB_STEP_SUMMARY;
+if (summary) {
+  const row = (k, v) => `| ${k} | ${v || "—"} |\n`;
+  appendFileSync(
+    summary,
+    "### Eval change detection\n\n| | |\n|---|---|\n" +
+      row("changed files", changed.length) +
+      row("skills with evals → run", skills.join(", ")) +
+      row("skills without evals → skipped", skippedSkills.join(", ")) +
+      row("agents with evals → run", agents.join(", ")) +
+      row("agents without evals → skipped", skippedAgents.join(", ")) +
+      row("workflow tier", runWorkflow ? "run" : "skip") +
+      "\n",
+  );
+}

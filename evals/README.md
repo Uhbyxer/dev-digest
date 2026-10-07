@@ -188,6 +188,15 @@ workflow cases:
 
 ### Wiring it into GitHub Actions (per-PR)
 
+> **This repo's actual workflow is `.github/workflows/evals.yml`** (the YAML below is the generic
+> example). It runs `ci-detect.mjs` on the PR's changed files, then: a blocking model-free `static`
+> job (typecheck, CLAUDE.md integrity, SKILL.md quality for touched skills) and non-blocking
+> `skills` / `agents` / `workflow` jobs on OpenRouter. Models are job parameters: `EVAL_MODEL` and
+> `EVAL_JUDGE_MODEL` default to `deepseek/deepseek-v4-flash`, the tool tiers use `EVAL_TOOL_MODEL`
+> (default `google/gemini-2.5-flash`, because some cheap models skip subagent dispatch). Override with
+> repo Actions variables of the same names, or the `workflow_dispatch` inputs. Needs the
+> `OPENROUTER_API_KEY` Actions secret; PRs from forks skip the model jobs.
+
 The engine is CI-ready: bring the proxy up as a step, wait for it, run the tier, tear it down. Put
 the OpenRouter key in the repo's **Actions secrets** as `OPENROUTER_API_KEY` (Settings → Secrets and
 variables → Actions). Create `.github/workflows/<name>.yml` in your repo:
