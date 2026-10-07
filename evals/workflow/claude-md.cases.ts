@@ -61,8 +61,9 @@ export const cases: WorkflowCase[] = [
     name: "architecture + dependency questions activate onion-architecture and dependency-checker",
     prompt:
       "Two things about this repo, read-only. First: is reviewer-core architecturally clean — does it " +
-      "leak any infrastructure (fs, DB, HTTP) into the domain core? Second: give me a dependency " +
-      "report — what depends on what across the packages, and what is heaviest.",
+      "leak any infrastructure (fs, DB, HTTP) into the domain core? Second: I need a dependency " +
+      "report for the whole repo — what depends on what across the packages, why is node_modules so " +
+      "big, and are there any unused or duplicated packages or version drift?",
     expectSkills: ["onion-architecture", "dependency-checker"],
     maxTurns: 14,
   },
