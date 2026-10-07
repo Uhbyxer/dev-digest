@@ -26,7 +26,8 @@ litellm_settings:
   drop_params: true
 
 general_settings:
-  # No master_key on purpose: this is an ephemeral local/CI gateway. It runs in "no-auth" mode,
-  # so the bearer token the SDK forwards (ANTHROPIC_AUTH_TOKEN=OPENROUTER_API_KEY) is ignored and
-  # the proxy authenticates to OpenRouter with OPENROUTER_API_KEY from its own environment.
-  # Do NOT expose this port publicly.
+  # master_key comes from LITELLM_MASTER_KEY (set to OPENROUTER_API_KEY in docker-compose.yml):
+  # current LiteLLM images refuse to start without one. The bearer token the eval clients forward
+  # (ANTHROPIC_AUTH_TOKEN / the OpenAI client's apiKey = OPENROUTER_API_KEY) is exactly that key, so
+  # every request authenticates; the proxy reaches OpenRouter with the same OPENROUTER_API_KEY.
+  # Still an ephemeral local/CI gateway: do NOT expose this port publicly.

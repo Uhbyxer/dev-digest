@@ -17,6 +17,10 @@ services:
       - "4000:4000"
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in the environment}
+      # Recent LiteLLM images refuse to start without a master key. The eval clients already send
+      # OPENROUTER_API_KEY as their bearer token (ANTHROPIC_AUTH_TOKEN / the OpenAI client's apiKey),
+      # so reusing it as the proxy's master key needs no extra secret and no client change.
+      LITELLM_MASTER_KEY: ${OPENROUTER_API_KEY}
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
