@@ -106,7 +106,7 @@ export function EvalDashboardView() {
                     const other = i === 0 ? b : a;
                     const changed = r.system_prompt !== other.system_prompt;
                     return (
-                      <div key={r.id}>
+                      <div key={i === 0 ? "a" : "b"}>
                         <div style={s.tag(changed)}>
                           {t("pipeline.dash.systemPrompt")} · {changed ? t("pipeline.dash.changed") : t("pipeline.dash.unchanged")}
                         </div>
