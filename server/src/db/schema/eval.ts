@@ -19,8 +19,28 @@ export const evalCases = pgTable('eval_cases', {
   notes: text('notes'),
 });
 
+/** One Eval run: an agent over all its Eval cases, with the prompt/model it ran with. */
+export const evalRunGroups = pgTable('eval_run_groups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  agentId: uuid('agent_id').notNull(),
+  ranAt: timestamp('ran_at', { withTimezone: true }).defaultNow().notNull(),
+  systemPrompt: text('system_prompt').notNull(),
+  model: text('model').notNull(),
+  recall: doublePrecision('recall').notNull(),
+  precision: doublePrecision('precision').notNull(),
+  citationAccuracy: doublePrecision('citation_accuracy').notNull(),
+  casesTotal: integer('cases_total').notNull(),
+  casesPassed: integer('cases_passed').notNull(),
+  durationMs: integer('duration_ms'),
+  costUsd: doublePrecision('cost_usd'),
+});
+
 export const evalRuns = pgTable('eval_runs', {
   id: uuid('id').primaryKey().defaultRandom(),
+  groupId: uuid('group_id').references(() => evalRunGroups.id, { onDelete: 'cascade' }),
   caseId: uuid('case_id')
     .notNull()
     .references(() => evalCases.id, { onDelete: 'cascade' }),

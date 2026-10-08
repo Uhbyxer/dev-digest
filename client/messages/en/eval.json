@@ -80,5 +80,45 @@
     "crumbEvals": "Evals",
     "crumbNewCase": "New case",
     "crumbEvalCase": "Eval case"
+  },
+  "pipeline": {
+    "metrics": {
+      "recall": "Recall",
+      "precision": "Precision",
+      "citation": "Citation accuracy"
+    },
+    "type": {
+      "must_find": "must find",
+      "must_not_flag": "must not flag"
+    },
+    "tab": {
+      "title": "Eval cases",
+      "subtitle": "Saved expectations from findings you accepted or dismissed. Run the agent over all of them to score a prompt change.",
+      "run": "Run evals ({count})",
+      "running": "Running… (one model call per case)",
+      "runError": "Eval run failed",
+      "empty": "No eval cases yet. Open a finding on a PR and click “Turn into eval case”.",
+      "latest": "Latest run",
+      "noRuns": "No runs yet.",
+      "history": "Run history",
+      "passed": "{passed}/{total} passed",
+      "compare": "Compare in dashboard"
+    },
+    "dash": {
+      "latestPerAgent": "Latest run per agent",
+      "compareTitle": "Compare two runs",
+      "runA": "Run A (baseline)",
+      "runB": "Run B",
+      "pick": "Select a run…",
+      "delta": "Change",
+      "systemPrompt": "System prompt",
+      "model": "Model",
+      "unchanged": "unchanged",
+      "changed": "changed",
+      "noRuns": "No eval runs yet. Open an agent, go to its Evals tab and run it.",
+      "cases": "{passed}/{total} cases passed",
+      "ranAt": "Ran {when}",
+      "results": "Per-case results"
+    }
   }
 }

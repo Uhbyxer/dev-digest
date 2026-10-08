@@ -8,6 +8,8 @@ import { Toggle, EmptyState, type Severity } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
+import { useCreateEvalCase } from "../../../../../../../lib/hooks/evals";
+import { useToast } from "../../../../../../../lib/toast";
 import { KEY_TO_ACTION } from "./constants";
 import { visibleFindings } from "./helpers";
 import { s } from "./styles";
@@ -28,6 +30,8 @@ export function FindingsPanel({
 }) {
   const t = useTranslations("prReview");
   const action = useFindingAction();
+  const createEvalCase = useCreateEvalCase();
+  const toast = useToast();
   const [hideLow, setHideLow] = React.useState(false);
   const [focusIdx, setFocusIdx] = React.useState(0);
 
@@ -74,6 +78,12 @@ export function FindingsPanel({
               repoFullName={repoFullName}
               headSha={headSha}
               onAction={(act) => action.mutate({ findingId: f.id, action: act, prId })}
+              onTurnIntoEval={() =>
+                createEvalCase.mutate(f.id, {
+                  onSuccess: () => toast.success(t("finding.evalCaseSaved")),
+                  onError: () => toast.error(t("finding.evalCaseFailed")),
+                })
+              }
             />
           ))
         )}

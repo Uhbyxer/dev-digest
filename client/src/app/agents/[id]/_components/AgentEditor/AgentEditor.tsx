@@ -10,6 +10,7 @@ import type { Agent } from "@devdigest/shared";
 import { ConfigTab } from "./_components/ConfigTab";
 import { ContextTab } from "./_components/ContextTab";
 import { SkillsTab } from "./_components/SkillsTab";
+import { EvalsTab } from "./_components/EvalsTab";
 import { TABS } from "./constants";
 import { s } from "./styles";
 
@@ -24,6 +25,8 @@ export function AgentEditor({ agent, tab, onTab }: { agent: Agent; tab: string; 
       <div style={s.body}>
         {tab === "skills" ? (
           <SkillsTab agent={agent} />
+        ) : tab === "evals" ? (
+          <EvalsTab agent={agent} />
         ) : tab === "context" ? (
           <ContextTab agent={agent} />
         ) : (

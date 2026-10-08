@@ -244,3 +244,64 @@ export const HookScanResult = z.object({
   findings: z.array(Finding),
 });
 export type HookScanResult = z.infer<typeof HookScanResult>;
+
+// ===========================================================================
+// Eval Pipeline — agent eval cases + eval runs (see docs/specs/eval-pipeline.md)
+// ===========================================================================
+
+export const EvalExpectationType = z.enum(['must_find', 'must_not_flag']);
+export type EvalExpectationType = z.infer<typeof EvalExpectationType>;
+
+/** What an agent Eval case expects at one location (stored in `expected_output`). */
+export const EvalExpectation = z.object({
+  type: EvalExpectationType,
+  file: z.string(),
+  start_line: z.number().int(),
+  end_line: z.number().int(),
+  title: z.string(),
+});
+export type EvalExpectation = z.infer<typeof EvalExpectation>;
+
+/** An agent Eval case as returned by the API. */
+export const AgentEvalCase = z.object({
+  id: z.string(),
+  agent_id: z.string(),
+  name: z.string(),
+  input_diff: z.string(),
+  expectation: EvalExpectation,
+});
+export type AgentEvalCase = z.infer<typeof AgentEvalCase>;
+
+/** One Eval run (an agent over all its cases) with the prompt/model it used. */
+export const AgentEvalRun = z.object({
+  id: z.string(),
+  agent_id: z.string(),
+  agent_name: z.string().nullable(),
+  ran_at: z.string(),
+  system_prompt: z.string(),
+  model: z.string(),
+  recall: z.number(),
+  precision: z.number(),
+  citation_accuracy: z.number(),
+  cases_total: z.number().int(),
+  cases_passed: z.number().int(),
+  duration_ms: z.number().int().nullable(),
+  cost_usd: z.number().nullable(),
+});
+export type AgentEvalRun = z.infer<typeof AgentEvalRun>;
+
+export const AgentEvalCaseResult = z.object({
+  case_id: z.string(),
+  case_name: z.string(),
+  expectation: EvalExpectation,
+  pass: z.boolean(),
+  findings: z.number().int(),
+  dropped: z.number().int(),
+});
+export type AgentEvalCaseResult = z.infer<typeof AgentEvalCaseResult>;
+
+/** One Eval run plus its per-case results. */
+export const AgentEvalRunDetail = AgentEvalRun.extend({
+  results: z.array(AgentEvalCaseResult),
+});
+export type AgentEvalRunDetail = z.infer<typeof AgentEvalRunDetail>;
