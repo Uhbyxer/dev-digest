@@ -186,4 +186,36 @@ d('Eval Pipeline routes (Testcontainers pg)', () => {
     const all = AgentEvalRun.array().parse((await a.inject({ method: 'GET', url: '/eval-runs' })).json());
     expect(all.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('a case whose model call fails is reported as an error and left out of the scores', async () => {
+    const db = pg.handle.db;
+    // Fails only for the b.ts case; everything else answers like the "prompt B" mock.
+    const inner = mockLlm(review(finding('a.ts', 5), finding('b.ts', 9)));
+    const flaky: MockLLMProvider = Object.assign(Object.create(inner), {
+      completeStructured: async (req: { messages: { content: string }[] }) => {
+        if (req.messages.some((m) => m.content.includes('b.ts'))) throw new Error('provider down');
+        return inner.completeStructured(req as never);
+      },
+    });
+    const res = await (await app(flaky)).inject({ method: 'POST', url: `/agents/${agentId}/eval-runs` });
+    expect(res.statusCode).toBe(200);
+    const run = AgentEvalRunDetail.parse(res.json());
+    expect(run.cases_total).toBe(4);
+    const failed = run.results.filter((r) => r.error);
+    expect(failed).toHaveLength(1);
+    expect(failed[0]!.expectation.file).toBe('b.ts');
+    expect(failed[0]!.pass).toBe(false);
+    expect(run.cases_passed).toBeLessThan(4);
+    void db;
+  });
+
+  it('fails the run (502) when every case fails', async () => {
+    const dead: MockLLMProvider = Object.assign(Object.create(mockLlm(review())), {
+      completeStructured: async () => {
+        throw new Error('provider down');
+      },
+    });
+    const res = await (await app(dead)).inject({ method: 'POST', url: `/agents/${agentId}/eval-runs` });
+    expect(res.statusCode).toBe(502);
+  });
 });

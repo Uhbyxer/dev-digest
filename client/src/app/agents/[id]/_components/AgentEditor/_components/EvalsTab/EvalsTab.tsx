@@ -24,7 +24,7 @@ export function EvalsTab({ agent }: { agent: Agent }) {
   const run = useRunAgentEvals(agent.id);
   const latest = runs.data?.[0];
   const latestDetail = useEvalRun(latest?.id);
-  const passByCase = new Map((latestDetail.data?.results ?? []).map((r) => [r.case_id, r.pass]));
+  const resultByCase = new Map((latestDetail.data?.results ?? []).map((r) => [r.case_id, r]));
 
   if (cases.isError || runs.isError) {
     return <ErrorState body={t("pipeline.tab.runError")} onRetry={() => { cases.refetch(); runs.refetch(); }} />;
@@ -84,7 +84,7 @@ export function EvalsTab({ agent }: { agent: Agent }) {
       ) : (
         <div style={s.list}>
           {list.map((c) => {
-            const pass = passByCase.get(c.id);
+            const result = resultByCase.get(c.id);
             return (
               <div key={c.id} style={s.row}>
                 <Badge>{t(`pipeline.type.${c.expectation.type}`)}</Badge>
@@ -95,7 +95,13 @@ export function EvalsTab({ agent }: { agent: Agent }) {
                     {c.expectation.end_line !== c.expectation.start_line ? `–${c.expectation.end_line}` : ""}
                   </div>
                 </div>
-                {pass !== undefined && <Badge>{pass ? t("dashboard.pass") : t("dashboard.fail")}</Badge>}
+                {result && (
+                  <span title={result.error ?? undefined}>
+                    <Badge>
+                      {result.error ? t("pipeline.tab.error") : result.pass ? t("dashboard.pass") : t("dashboard.fail")}
+                    </Badge>
+                  </span>
+                )}
               </div>
             );
           })}

@@ -297,6 +297,8 @@ export const AgentEvalCaseResult = z.object({
   pass: z.boolean(),
   findings: z.number().int(),
   dropped: z.number().int(),
+  /** Set when the case's model call failed; such cases are left out of the scores. */
+  error: z.string().nullish(),
 });
 export type AgentEvalCaseResult = z.infer<typeof AgentEvalCaseResult>;
 

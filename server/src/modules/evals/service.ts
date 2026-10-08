@@ -15,12 +15,15 @@ import {
 } from '@devdigest/reviewer-core';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import { parseUnifiedDiff } from '../../adapters/git/diff-parser.js';
+import { withTimeout } from '../../platform/resilience.js';
 import { findingContext } from '../reviews/repository/review.repo.js';
 import { AgentsRepository } from '../agents/repository.js';
 import * as repo from './repository.js';
 import type { EvalCaseRow, EvalRunGroupRow } from './repository.js';
 
 const RUN_LIST_LIMIT = 100;
+/** Hard cap per case: a stuck provider call must not hang the whole run. */
+const CASE_TIMEOUT_MS = 120_000;
 const EXPECTATION_TYPE_BY_DECISION = { accepted: 'must_find', dismissed: 'must_not_flag' } as const;
 
 const toCaseDto = (row: EvalCaseRow): AgentEvalCase => ({
@@ -123,36 +126,50 @@ export class EvalsService {
       .map((l) => ({ body: l.skill.body, source: l.skill.source as SkillSource }));
 
     const started = Date.now();
-    let costUsd: number | null = 0;
-    const outcomes: EvalCaseOutcome[] = [];
-    const caseRuns: { evalCase: EvalCaseRow; outcome: EvalCaseOutcome; durationMs: number; costUsd: number | null }[] = [];
+    // Cases run in parallel; a case that errors (provider failure/timeout) is recorded as
+    // failed and left out of the scores, so one flaky call doesn't void the whole run.
+    const settled = await Promise.all(
+      cases.map(async (evalCase) => {
+        const caseStarted = Date.now();
+        try {
+          const outcome = await withTimeout(
+            reviewPullRequest({
+              systemPrompt: agent.systemPrompt,
+              model: agent.model,
+              diff: parseUnifiedDiff(evalCase.inputDiff ?? ''),
+              llm,
+              strategy: 'single-pass',
+              ...(skills.length > 0 ? { skills } : {}),
+              task: 'Review this change.',
+            }),
+            CASE_TIMEOUT_MS,
+          );
+          const scored: EvalCaseOutcome = {
+            expectation: evalCase.expectedOutput as EvalExpectation,
+            findings: outcome.review.findings.map((f) => ({
+              file: f.file,
+              start_line: f.start_line,
+              end_line: f.end_line,
+            })),
+            dropped: outcome.dropped.length,
+          };
+          return { evalCase, scored, error: null, durationMs: Date.now() - caseStarted, costUsd: outcome.costUsd };
+        } catch (err) {
+          return { evalCase, scored: null, error: (err as Error).message, durationMs: Date.now() - caseStarted, costUsd: null };
+        }
+      }),
+    );
 
-    for (const evalCase of cases) {
-      const caseStarted = Date.now();
-      const outcome = await reviewPullRequest({
-        systemPrompt: agent.systemPrompt,
-        model: agent.model,
-        diff: parseUnifiedDiff(evalCase.inputDiff ?? ''),
-        llm,
-        strategy: 'single-pass',
-        ...(skills.length > 0 ? { skills } : {}),
-        task: 'Review this change.',
-      });
-      const scored: EvalCaseOutcome = {
-        expectation: evalCase.expectedOutput as EvalExpectation,
-        findings: outcome.review.findings.map((f) => ({
-          file: f.file,
-          start_line: f.start_line,
-          end_line: f.end_line,
-        })),
-        dropped: outcome.dropped.length,
-      };
-      outcomes.push(scored);
-      costUsd = costUsd === null || outcome.costUsd === null ? null : costUsd + outcome.costUsd;
-      caseRuns.push({ evalCase, outcome: scored, durationMs: Date.now() - caseStarted, costUsd: outcome.costUsd });
+    const done = settled.filter((c) => c.scored !== null);
+    if (done.length === 0) {
+      throw new AppError('llm_failed', `Every eval case failed: ${settled[0]!.error}`, 502);
     }
-
-    const score = scoreEvalRun(outcomes);
+    const score = scoreEvalRun(done.map((c) => c.scored!));
+    const scoredPass = new Map(done.map((c, i) => [c.evalCase.id, score.per_case[i]!.pass]));
+    const costUsd = done.reduce<number | null>(
+      (sum, c) => (sum === null || c.costUsd === null ? null : sum + c.costUsd),
+      0,
+    );
     const group = await repo.insertRunGroup(
       db,
       {
@@ -163,15 +180,17 @@ export class EvalsService {
         recall: score.recall,
         precision: score.precision,
         citationAccuracy: score.citation_accuracy,
-        casesTotal: score.cases_total,
+        casesTotal: cases.length,
         casesPassed: score.cases_passed,
         durationMs: Date.now() - started,
         costUsd,
       },
-      caseRuns.map((c, i) => ({
+      settled.map((c) => ({
         caseId: c.evalCase.id,
-        actualOutput: { findings: c.outcome.findings, dropped: c.outcome.dropped },
-        pass: score.per_case[i]!.pass,
+        actualOutput: c.scored
+          ? { findings: c.scored.findings, dropped: c.scored.dropped }
+          : { findings: [], dropped: 0, error: c.error },
+        pass: scoredPass.get(c.evalCase.id) ?? false,
         durationMs: c.durationMs,
         costUsd: c.costUsd,
       })),
@@ -195,6 +214,7 @@ export class EvalsService {
       const actual = (run.actualOutput ?? { findings: [], dropped: 0 }) as {
         findings: unknown[];
         dropped: number;
+        error?: string;
       };
       return {
         case_id: evalCase.id,
@@ -203,6 +223,7 @@ export class EvalsService {
         pass: run.pass ?? false,
         findings: actual.findings.length,
         dropped: actual.dropped,
+        error: actual.error ?? null,
       };
     });
     return { ...toRunDto(found.group, found.agentName), results };
