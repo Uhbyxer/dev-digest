@@ -82,10 +82,9 @@ here.
 
 ## Read When
 
-- **Modifying the review pipeline this package calls into** → `reviewer-core/docs/pipeline.md`
-- **Changing what gets embedded in the exported PR / workflow generation** →
-  `server/src/modules/ci/` (owned by the server `ci` module, not this package)
-- **Hit unexpected behavior (ncc bundling, path-alias resolution)** → `agent-runner/insights/gotchas.md`
+- **Modifying the review pipeline this package calls into** → `../reviewer-core/CLAUDE.md`
+- **Hit unexpected behavior (ncc bundling, path-alias resolution)** → `insights/INSIGHTS.md`
+
 
 ## Session Context
 
