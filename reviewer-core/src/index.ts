@@ -124,3 +124,16 @@ export {
   type ProjectContextEntry,
   type SerializedProjectContext,
 } from './project-context/index.js';
+
+// Eval scoring — pure code, no LLM (Eval Pipeline).
+export {
+  scoreCase,
+  scoreEvalRun,
+  locationsHit,
+  type EvalExpectation,
+  type EvalExpectationType,
+  type EvalCaseOutcome,
+  type EvalCaseScore,
+  type EvalRunScore,
+  type FindingLocation,
+} from './eval/score.js';

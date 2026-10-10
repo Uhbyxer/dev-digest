@@ -291,3 +291,35 @@ given, never re-derived by it. The model never reads diff hunk bodies.
 - The Brief's **specs** are the Attachments of the repo's enabled agents (and
   their linked skills), deduplicated, read from the base branch like a
   **Project context block**, and treated as untrusted data.
+
+## Eval case
+
+One saved expectation about a review **agent**, born from a single **finding**
+the user accepted or dismissed. It holds the file's diff from the PR and one
+expected outcome:
+
+- **must_find** (from an *accepted* finding): the agent should report a
+  finding at that file and line range.
+- **must_not_flag** (from a *dismissed* finding): the agent should not report
+  anything at that file and line range.
+
+A finding is turned into at most one case per expectation; the case is a
+snapshot and does not follow later changes to the finding's decision. Cases
+belong to agents only (not skills).
+
+## Eval run
+
+One execution of an agent over **all** of its Eval cases, with the agent's
+system prompt and model recorded at that moment so two runs can be compared.
+A run has three scores, computed by code with no model call:
+
+- A finding **hits** a case's location when it is in the same file and its
+  line range overlaps the case's. Category and severity are ignored.
+- **recall**: share of *must_find* cases hit.
+- **precision**: share of the agent's findings that do not hit any
+  *must_not_flag* case.
+- **citation_accuracy**: share of the agent's raw findings that survive the
+  grounding gate.
+
+Not the same thing as the harness evals in `evals/`, which test Claude Code
+skills and subagents, not the product's review agents.

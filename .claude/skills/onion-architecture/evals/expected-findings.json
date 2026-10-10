@@ -1,0 +1,249 @@
+{
+  "skill": "onion-architecture",
+  "recall_threshold": 0.85,
+  "findings": [
+    {
+      "id": "rc-fs",
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/review/load-repo-map.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-filesystem",
+      "must_mention": [
+        "node:fs",
+        "readFileSync"
+      ]
+    },
+    {
+      "id": "rc-sdk",
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/llm/summarize-diff.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-concrete-llm-sdk",
+      "must_mention": [
+        "@anthropic-ai/sdk"
+      ]
+    },
+    {
+      "id": "rc-http",
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/output/publish-summary.ts",
+      "line": 13,
+      "rule": "reviewer-core-no-http-client",
+      "must_mention": [
+        "fetch",
+        "api.github.com"
+      ]
+    },
+    {
+      "id": "srv-drizzle",
+      "fixture": "server-seams",
+      "file": "server/src/modules/notes/service.ts",
+      "line": 1,
+      "rule": "drizzle-only-in-repository",
+      "must_mention": [
+        "drizzle-orm",
+        "repository"
+      ]
+    },
+    {
+      "id": "srv-sdk",
+      "fixture": "server-seams",
+      "file": "server/src/modules/notes/routes.ts",
+      "line": 30,
+      "rule": "sdk-behind-adapter",
+      "must_mention": [
+        "OpenAI",
+        "container.llm"
+      ]
+    },
+    {
+      "id": "srv-zod",
+      "fixture": "server-seams",
+      "file": "server/src/modules/notes/routes.ts",
+      "line": 21,
+      "rule": "zod-parse-at-route-boundary",
+      "must_mention": [
+        "Zod"
+      ]
+    },
+    {
+      "id": "mix-fastify",
+      "fixture": "mixed-pr",
+      "file": "reviewer-core/src/review/trace.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-fastify",
+      "must_mention": [
+        "fastify"
+      ]
+    },
+    {
+      "id": "mix-concrete",
+      "fixture": "mixed-pr",
+      "file": "server/src/modules/webhooks/service.ts",
+      "line": 19,
+      "rule": "service-depends-on-interface",
+      "must_mention": [
+        "OctokitGitHubClient"
+      ]
+    },
+    {
+      "id": "mix-decorate",
+      "fixture": "mixed-pr",
+      "file": "server/src/plugins/review-state.ts",
+      "line": 11,
+      "rule": "decorate-request-no-shared-object",
+      "must_mention": [
+        "decorateRequest"
+      ]
+    },
+    {
+      "id": "ag-route-db",
+      "fixture": "agents-module",
+      "file": "server/src/modules/agents/routes.ts",
+      "line": 29,
+      "rule": "no-db-in-route-handler",
+      "must_mention": [
+        "container.db",
+        "repository"
+      ]
+    },
+    {
+      "id": "ag-fastify-req",
+      "fixture": "agents-module",
+      "file": "server/src/modules/agents/service.ts",
+      "line": 18,
+      "rule": "inner-code-never-receives-fastify-objects",
+      "must_mention": [
+        "FastifyRequest"
+      ]
+    },
+    {
+      "id": "ag-rezod",
+      "fixture": "agents-module",
+      "file": "server/src/modules/agents/service.ts",
+      "line": 19,
+      "rule": "parse-once-at-boundary",
+      "must_mention": [
+        "Zod",
+        "route"
+      ]
+    },
+    {
+      "id": "cs-childproc",
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/review/changed-files.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-filesystem-or-git",
+      "must_mention": [
+        "child_process"
+      ]
+    },
+    {
+      "id": "cs-undici",
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/review/linked-spec.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-http-client",
+      "must_mention": [
+        "undici"
+      ]
+    },
+    {
+      "id": "cs-postgres",
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/output/finding-cache.ts",
+      "line": 1,
+      "rule": "reviewer-core-no-db-driver",
+      "must_mention": [
+        "postgres"
+      ]
+    }
+  ],
+  "must_not_flag": [
+    {
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/review/assemble-prompt.ts"
+    },
+    {
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/review/run-review.ts"
+    },
+    {
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/output/parse-findings.ts"
+    },
+    {
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/output/format-finding.ts"
+    },
+    {
+      "fixture": "reviewer-core-imports",
+      "file": "reviewer-core/src/llm/types.ts"
+    },
+    {
+      "fixture": "server-seams",
+      "file": "server/src/modules/notes/repository.ts",
+      "why": "Drizzle is allowed here"
+    },
+    {
+      "fixture": "server-seams",
+      "file": "server/src/adapters/llm/openai.ts",
+      "why": "SDK is allowed in an adapter"
+    },
+    {
+      "fixture": "server-seams",
+      "file": "server/src/platform/container.ts",
+      "why": "composition root"
+    },
+    {
+      "fixture": "mixed-pr",
+      "file": "reviewer-core/src/review/dedupe.ts",
+      "why": "pure logic"
+    },
+    {
+      "fixture": "mixed-pr",
+      "file": "server/src/adapters/slack/notifier.ts",
+      "why": "fetch allowed in an adapter; single-impl port is justified for DI"
+    },
+    {
+      "fixture": "mixed-pr",
+      "file": "server/src/platform/container.ts",
+      "why": "composition root"
+    },
+    {
+      "fixture": "agents-module",
+      "file": "server/src/modules/agents/repository.ts",
+      "why": "Drizzle is allowed here"
+    },
+    {
+      "fixture": "agents-module",
+      "file": "server/src/modules/agents/helpers.ts",
+      "why": "pure helper; do not suggest a domain/ folder"
+    },
+    {
+      "fixture": "agents-module",
+      "file": "server/src/adapters/notify/email.ts",
+      "why": "SDK allowed in an adapter; single-impl port justified"
+    },
+    {
+      "fixture": "agents-module",
+      "file": "server/src/platform/container.ts",
+      "why": "composition root"
+    },
+    {
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/review/path-utils.ts",
+      "why": "node:path posix used only for pure string ops, no filesystem access"
+    },
+    {
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/review/fingerprint.ts",
+      "why": "node:crypto hashing is pure, no I/O"
+    },
+    {
+      "fixture": "core-subtle",
+      "file": "reviewer-core/src/review/assemble.ts",
+      "why": "pure logic"
+    }
+  ]
+}

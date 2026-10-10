@@ -28,6 +28,7 @@ export function FindingCard({
   focused,
   defaultExpanded,
   onAction,
+  onTurnIntoEval,
   pending,
   repoFullName,
   headSha,
@@ -36,6 +37,8 @@ export function FindingCard({
   focused?: boolean;
   defaultExpanded?: boolean;
   onAction?: (action: FindingActionKind, reply?: string) => void;
+  /** Save this decided finding as an Eval case of its agent. */
+  onTurnIntoEval?: () => void;
   pending?: boolean;
   repoFullName?: string | null;
   headSha?: string | null;
@@ -109,6 +112,19 @@ export function FindingCard({
             >
               {t("finding.dismiss")}
             </Button>
+            {onTurnIntoEval && (
+              <span title={muted ? undefined : t("finding.turnIntoEvalHint")}>
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  icon="FlaskConical"
+                  disabled={pending || !muted}
+                  onClick={onTurnIntoEval}
+                >
+                  {t("finding.turnIntoEval")}
+                </Button>
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import {
   PERFORMANCE_REVIEWER_PROMPT,
   TEST_QUALITY_REVIEWER_PROMPT,
 } from './seed-prompts.js';
+import { SEED_EVAL_CASES, addedLinesDiff } from './seed-eval-cases.js';
 
 /**
  * T7 seed skills — content is deliberately specific (not generic filler) so
@@ -310,6 +311,26 @@ export async function seed(db: Db): Promise<{ workspaceId: string; userId: strin
       .insert(t.agentSkills)
       .values({ agentId, skillId, order: 0 })
       .onConflictDoNothing();
+  }
+
+  // ---- Eval cases for the General Reviewer (Eval Pipeline) ----
+  const generalId = agentIdByName.get('General Reviewer')!;
+  const existingCases = await db
+    .select({ name: t.evalCases.name })
+    .from(t.evalCases)
+    .where(and(eq(t.evalCases.ownerKind, 'agent'), eq(t.evalCases.ownerId, generalId)));
+  const haveCase = new Set(existingCases.map((c) => c.name));
+  for (const c of SEED_EVAL_CASES) {
+    const name = `${c.expectation.type}: ${c.expectation.title}`;
+    if (haveCase.has(name)) continue;
+    await db.insert(t.evalCases).values({
+      workspaceId,
+      ownerKind: 'agent',
+      ownerId: generalId,
+      name,
+      inputDiff: addedLinesDiff(c.expectation.file, c.expectation.start_line, c.lines),
+      expectedOutput: c.expectation,
+    });
   }
 
   return { workspaceId, userId };

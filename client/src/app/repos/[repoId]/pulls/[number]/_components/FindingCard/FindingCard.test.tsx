@@ -57,4 +57,17 @@ describe("FindingCard (smoke, both themes)", () => {
     fireEvent.click(screen.getByText("Dismiss"));
     expect(onAction).toHaveBeenCalledWith("dismiss");
   });
+
+  it("turns a decided finding into an eval case, but not an undecided one", () => {
+    const onTurnIntoEval = vi.fn();
+    renderWithIntl(<FindingCard f={FINDING} defaultExpanded onTurnIntoEval={onTurnIntoEval} />);
+    const button = screen.getByText("Turn into eval case").closest("button")!;
+    expect(button).toBeDisabled();
+    cleanup();
+
+    const accepted = { ...FINDING, accepted_at: "2026-01-01T00:00:00Z" };
+    renderWithIntl(<FindingCard f={accepted} defaultExpanded onTurnIntoEval={onTurnIntoEval} />);
+    fireEvent.click(screen.getByText("Turn into eval case"));
+    expect(onTurnIntoEval).toHaveBeenCalledTimes(1);
+  });
 });

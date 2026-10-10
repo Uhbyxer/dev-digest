@@ -26,3 +26,6 @@ test-results/
 
 # personal Claude Code permission overrides (not team-shared)
 .claude/settings.local.json
+
+# skill-creator eval run artifacts (see skill-evals/_shared/README.md)
+.claude/skills/*-workspace/
