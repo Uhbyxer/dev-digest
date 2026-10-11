@@ -12,7 +12,7 @@ import type { Container } from '../../platform/container.js';
 import { ExternalServiceError, NotFoundError, ValidationError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { CiRepository, type InstallationRow, type CiRunDbRow } from './repository.js';
-import { assembleCiFiles, redactRunner, zipFiles } from './files.js';
+import { assembleCiFiles, MEMORY_PATH, redactRunner, zipFiles } from './files.js';
 import { WORKFLOW_VERSION } from './workflow.js';
 import { verdictOf } from './verdict.js';
 
@@ -109,6 +109,18 @@ export class CiService {
       throw new ValidationError('Opening a PR is only supported for GitHub Actions; download the files instead');
     }
 
+    // v1: one agent per repo. Re-export for the same agent is allowed.
+    const installed = await this.repo.findRepoInstallations(workspaceId, input.repo, input.target);
+    const other = installed.find((i) => i.agentId !== agentId);
+    if (other) {
+      throw new ValidationError(
+        `repo already has DevDigest CI installed for agent ${other.agentName}; one agent per repo in v1`,
+      );
+    }
+    // Never overwrite memory accumulated on an already-installed repo.
+    const alreadyInstalled = installed.length > 0;
+    const commitList = alreadyInstalled ? files.filter((f) => f.path !== MEMORY_PATH) : files;
+
     const github = await this.container.github();
     let prUrl: string;
     try {
@@ -116,7 +128,7 @@ export class CiService {
         branch: CI_BRANCH,
         base: input.base,
         message: CI_PR_TITLE,
-        files: files.map((f) => ({ path: f.path, contents: f.contents })),
+        files: commitList.map((f) => ({ path: f.path, contents: f.contents })),
       });
       const existing = await github.findOpenPr(repoRef, CI_BRANCH);
       prUrl = existing

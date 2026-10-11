@@ -22,10 +22,26 @@ function httpStatus(err: unknown): number | undefined {
  * rows and marks the refresh `degraded`, others are kept; (2) insert in one transaction (idempotent via the natural
  * unique index + ON CONFLICT DO NOTHING, AC-30).
  */
-export async function refreshCiRuns(
+const inFlight = new Map<string, Promise<CiRefreshResult>>();
+
+/** Concurrent refreshes for the same scope share one sweep (strict-mode/double mounts). */
+export function refreshCiRuns(
   container: Container,
   workspaceId: string,
   opts: { agentId?: string } = {},
+): Promise<CiRefreshResult> {
+  const key = `${workspaceId}|${opts.agentId ?? 'all'}`;
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const p = refreshCiRunsUncoalesced(container, workspaceId, opts).finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+async function refreshCiRunsUncoalesced(
+  container: Container,
+  workspaceId: string,
+  opts: { agentId?: string },
 ): Promise<CiRefreshResult> {
   const repo = new CiRepository(container.db);
   const installations = await repo.listTrackedGha(workspaceId, opts.agentId);

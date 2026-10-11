@@ -108,3 +108,15 @@ describe('refreshCiRuns', () => {
     expect(res.ingested).toBe(2);
   });
 });
+
+describe('refreshCiRuns coalescing', () => {
+  it('concurrent refreshes for the same scope share one sweep; a later one runs again', async () => {
+    const { container } = setup(new MockGitHubClient({ workflowRuns: [run(11)], artifacts: { 11: artifact() } }));
+    const list = vi.spyOn(CiRepository.prototype, 'listTrackedGha');
+    const [a, b] = await Promise.all([refreshCiRuns(container, 'ws'), refreshCiRuns(container, 'ws')]);
+    expect(a).toBe(b);
+    expect(list).toHaveBeenCalledTimes(1);
+    await refreshCiRuns(container, 'ws');
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+});

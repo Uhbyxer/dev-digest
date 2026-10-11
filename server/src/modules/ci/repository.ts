@@ -87,6 +87,25 @@ export class CiRepository {
     return row!;
   }
 
+  /** Installations of a repo+target across all agents in the workspace (v1: one agent per repo). */
+  async findRepoInstallations(
+    workspaceId: string,
+    repo: string,
+    targetType: InstallationRow['targetType'],
+  ): Promise<{ agentId: string; agentName: string }[]> {
+    return this.db
+      .select({ agentId: t.ciInstallations.agentId, agentName: t.agents.name })
+      .from(t.ciInstallations)
+      .innerJoin(t.agents, eq(t.agents.id, t.ciInstallations.agentId))
+      .where(
+        and(
+          eq(t.agents.workspaceId, workspaceId),
+          eq(t.ciInstallations.repo, repo),
+          eq(t.ciInstallations.targetType, targetType),
+        ),
+      );
+  }
+
   async listInstallations(workspaceId: string, agentId: string): Promise<InstallationRow[]> {
     const rows = await this.db
       .select({ inst: t.ciInstallations })

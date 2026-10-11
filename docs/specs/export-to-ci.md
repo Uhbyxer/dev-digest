@@ -544,6 +544,16 @@ privilege half of the trifecta.
   (AC-33). The design's Preview snippet invokes `node .devdigest/runner.mjs review --agent …`;
   the real runner path is `.devdigest/runner/index.js` (see `AGENT-RUNNER.md`) and the generated
   workflow uses that.
+- **Q13 — one agent per repo (v1):** exporting `open_pr` for a repo that already has a GitHub
+  Actions installation for a different agent is rejected (422 `validation_error`). Re-export for
+  the same agent is allowed.
+- **Q14 — manifest provider vs runner:** the runner always uses OpenRouter via
+  `OPENROUTER_API_KEY` and ignores `manifest.provider`; model ids must be OpenRouter ids.
+  Documented in `AGENT-RUNNER.md`; no code change.
+- **Q15 — memory is never overwritten:** when an installation already exists for (agent, repo),
+  re-export omits `.devdigest/memory.jsonl` from the committed files (Preview still lists it).
+- **Q16 — refresh coalescing:** concurrent `POST /ci/refresh` calls for the same scope
+  (agent or all) share one in-flight GitHub sweep server-side, so double mounts don't double-sweep.
 
 ## Open questions
 
