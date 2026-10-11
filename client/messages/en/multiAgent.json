@@ -1,0 +1,76 @@
+{
+  "nav": {
+    "title": "Multi-Agent Review",
+    "configure": "Configure run"
+  },
+  "viewTrace": "View trace",
+  "configure": {
+    "title": "Run a Multi-Agent Review",
+    "lead": "Pick a pull request and choose which agents to fan out — they run in parallel and you compare their findings side by side.",
+    "stepPr": "Pull request",
+    "prPlaceholder": "Select a pull request…",
+    "noPrs": "No pull requests yet",
+    "stepAgents": "Agents to run",
+    "selectAll": "Select all",
+    "pickPrFirst": "Pick a pull request first to choose agents.",
+    "noAgentsTitle": "No enabled agents",
+    "noAgentsBody": "Enable or create an agent to run a multi-agent review.",
+    "noAgentsCta": "Go to Agents",
+    "noHistory": "no history",
+    "run": "Run multi-agent review ({count})",
+    "estimateSummary": "≈ {time} · {cost} · parallel fan-out",
+    "noEstimate": "No run history yet — no estimate",
+    "startError": {
+      "notFound": "The pull request or an agent no longer exists. Refresh and try again.",
+      "conflict": "One of the selected agents is disabled. Adjust the selection and try again.",
+      "rateLimit": "Too many requests right now. Wait a moment and try again.",
+      "server": "The server hit an error starting the review. Try again shortly.",
+      "generic": "Couldn't start the multi-agent review. Try again."
+    }
+  },
+  "results": {
+    "configureRun": "Configure run",
+    "subtitle": "{count} selected agents · parallel",
+    "totals": "{count} agents · parallel fan-out · {time} total · {cost}",
+    "viewLabel": "Result layout",
+    "view": {
+      "columns": "Columns",
+      "tabs": "Tabs"
+    },
+    "tabsLabel": "Agents",
+    "noFindings": "No findings",
+    "findingsCount": "{count, plural, one {# finding} other {# findings}}",
+    "missingPrTitle": "No pull request selected",
+    "missingPrBody": "Open a multi-agent result from Configure run or a pull request page.",
+    "loadErrorTitle": "Couldn't load this multi-agent review",
+    "loadErrorBody": "The result could not be loaded."
+  },
+  "status": {
+    "running": "Running",
+    "failed": "Failed",
+    "runningBody": "Agent is reviewing the pull request…",
+    "failedBody": "This agent run failed."
+  },
+  "score": {
+    "label": "Score {score} out of 100"
+  },
+  "finding": {
+    "accepted": "Accepted",
+    "dismissed": "Dismissed",
+    "confidence": "{pct}% conf",
+    "suggestedFix": "Suggested fix",
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "learn": "Learn",
+    "turnIntoEval": "Turn into eval case",
+    "reply": "Reply to author",
+    "comingSoon": "Coming soon"
+  },
+  "disagree": {
+    "title": "Where agents disagree",
+    "onlyConflicts": "Show only conflicts",
+    "waiting": "Waiting for {count, plural, one {# agent} other {# agents}} to finish…",
+    "none": "No overlapping findings to compare.",
+    "didNotFlag": "did not flag"
+  }
+}

@@ -144,6 +144,7 @@ export class ReviewRepository {
     prId: string;
     provider: string | null;
     model: string | null;
+    multiAgentRunId?: string | null;
   }): Promise<string> {
     return runRepo.createAgentRun(this.db, values);
   }
@@ -168,6 +169,30 @@ export class ReviewRepository {
     },
   ): Promise<void> {
     return runRepo.completeAgentRun(this.db, runId, values);
+  }
+
+  // ---- multi-agent runs ---------------------------------------------------
+
+  createMultiAgentRun(workspaceId: string, prId: string): Promise<runRepo.MultiAgentRunRow> {
+    return runRepo.createMultiAgentRun(this.db, workspaceId, prId);
+  }
+
+  /** A PR's multi-run by id, or its latest when `multiRunId` is omitted. */
+  getMultiAgentRun(
+    workspaceId: string,
+    prId: string,
+    multiRunId?: string,
+  ): Promise<runRepo.MultiAgentRunRow | undefined> {
+    return runRepo.getMultiAgentRun(this.db, workspaceId, prId, multiRunId);
+  }
+
+  listRunsForMultiRun(workspaceId: string, multiRunId: string): Promise<runRepo.MultiRunAgentRunRow[]> {
+    return runRepo.listRunsForMultiRun(this.db, workspaceId, multiRunId);
+  }
+
+  /** Reviews (+ findings) produced by the given agent runs. */
+  reviewsForRuns(runIds: string[]): Promise<{ review: ReviewRow; findings: FindingRow[] }[]> {
+    return reviewRepo.reviewsForRuns(this.db, runIds);
   }
 
   /** Record the head SHA a review ran against (PR-list freshness derivation). */

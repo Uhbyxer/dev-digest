@@ -2,6 +2,7 @@ import type { Container } from '../../platform/container.js';
 import type {
   Agent,
   AgentSkillLink,
+  AgentWithEstimate,
   AgentVersion,
   CiFailOn,
   ModelInfo,
@@ -55,9 +56,22 @@ export class AgentsService {
     this.repo = new AgentsRepository(container.db);
   }
 
-  async list(workspaceId: string): Promise<Agent[]> {
-    const rows = await this.repo.list(workspaceId);
-    return rows.map(toAgentDto);
+  /** Agents with the pre-run estimate merged in (null + has_history:false when no done runs). */
+  async list(workspaceId: string): Promise<AgentWithEstimate[]> {
+    const [rows, estimates] = await Promise.all([
+      this.repo.list(workspaceId),
+      this.repo.estimatesByAgent(workspaceId),
+    ]);
+    const byAgent = new Map(estimates.map((e) => [e.agentId, e]));
+    return rows.map((row) => {
+      const est = byAgent.get(row.id);
+      return {
+        ...toAgentDto(row),
+        est_duration_ms: est?.avgDurationMs != null ? Math.round(est.avgDurationMs) : null,
+        est_cost_usd: est?.avgCostUsd ?? null,
+        has_history: est !== undefined,
+      };
+    });
   }
 
   async get(workspaceId: string, id: string): Promise<Agent | undefined> {

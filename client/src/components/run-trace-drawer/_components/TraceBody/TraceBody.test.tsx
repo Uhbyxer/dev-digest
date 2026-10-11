@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { RunTrace } from "@devdigest/shared";
-import runsMessages from "../../../../../../../../../../messages/en/runs.json";
+import runsMessages from "../../../../../messages/en/runs.json";
 import { TraceBody } from "./TraceBody";
 
 afterEach(cleanup);

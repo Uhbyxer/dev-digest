@@ -44,6 +44,16 @@ export type {
 } from "@devdigest/shared";
 export type { FindingRecord, FindingActionKind } from "@devdigest/shared";
 export type {
+  AgentWithEstimate,
+  MultiAgentRun,
+  MultiAgentRunRequest,
+  MultiAgentRunStarted,
+  AgentColumn,
+  AgentColumnFinding,
+  Conflict,
+  ConflictTake,
+} from "@devdigest/shared";
+export type {
   ContextDocument,
   ContextDocType,
   ContextOwnerType,

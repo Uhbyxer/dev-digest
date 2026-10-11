@@ -31,6 +31,13 @@ export const NAV: NavGroup[] = [
       { key: "eval", label: "Eval Dashboard", icon: "FlaskConical", href: "/eval", gKey: "e" },
     ],
   },
+  {
+    section: "GLOBAL",
+    items: [
+      // Global (not repo-scoped): no :repoId token, resolveHref passes it through unchanged.
+      { key: "multi-agent", label: "Multi-Agent Review", icon: "Users", href: "/multi-agent-review" },
+    ],
+  },
 ];
 
 export const SETTINGS_ITEM: NavItemDef = {

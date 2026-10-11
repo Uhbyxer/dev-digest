@@ -44,6 +44,26 @@
     "mergedWarning": "Already merged — review is informational",
     "mergedTooltip": "This PR is already merged; running a review won’t affect the merged code."
   },
+  "agentPicker": {
+    "title": "Pick agents to run",
+    "clear": "Clear",
+    "listLabel": "Agents to run",
+    "run": "Run multi-agent review ({count})",
+    "starting": "Starting…",
+    "estimateSummary": "≈ {time} · {cost} · parallel fan-out",
+    "noEstimate": "No run history yet — no estimate",
+    "noHistory": "no history",
+    "emptyTitle": "No enabled agents",
+    "emptyBody": "Enable or create an agent to run a multi-agent review.",
+    "emptyLink": "Go to Agents",
+    "startError": {
+      "notFound": "The pull request or an agent no longer exists. Refresh and try again.",
+      "conflict": "One of the selected agents is disabled. Adjust the selection and try again.",
+      "rateLimit": "Too many requests right now. Wait a moment and try again.",
+      "server": "The server hit an error starting the review. Try again shortly.",
+      "generic": "Couldn't start the multi-agent review. Try again."
+    }
+  },
   "runStatus": {
     "elapsed": "Running · {count} agent(s)",
     "approved": "approved",

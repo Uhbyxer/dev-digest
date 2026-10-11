@@ -18,6 +18,9 @@ process).
 - The vendored `client/src/vendor/shared/contracts/*.ts` files are meant to be byte-identical mirrors of `server/src/vendor/shared/contracts/*.ts` (not hand-ported field-by-field) — when a shared contract changes, `cp` the server file over the client one rather than re-typing the diff, to guarantee they don't drift.
 - Diff deep links (`?tab=diff&file=&line=`): `parseDiffTarget` (`components/diff-viewer/target.ts`) → `DiffTab target` → `SmartDiffViewer`/`DiffViewer` → `FileCard`, which force-opens and `scrollIntoView`s `[data-new-line]`; jsdom has no `scrollIntoView`, so tests must stub `Element.prototype.scrollIntoView`. The PR Brief card receives Intent/Blast panels as an `aside` slot and must render it in every state, or those panels vanish before a Brief exists.
 
+- Multi-Agent Review (`src/app/multi-agent-review/`): the read endpoint `GET /pulls/:id/multi-agent` is PR-scoped, so the results route is `/multi-agent-review/[multiRunId]?pr=<prId>` (helper `resultsHref`). A failed `AgentColumn` carries its error text in `summary` (server maps run.error there), there is no `error` field. Global nav items use an href without `:repoId` (`resolveHref` passes it through); `activeKeyFor` already maps `/multi-agent*` to key `multi-agent`.
+- `@devdigest/ui` `Checkbox`/`Toggle` give no way to right-align siblings or add an accessible name; for rows needing layout/labels use a native `<input type="checkbox">` in a `<label>` and a `role="switch"` button.
+
 ## Tool & Library Notes
 - `@testing-library/user-event` is NOT installed in client; write RTL tests with `fireEvent` (use `fireEvent.change` on textareas). Importing user-event fails at vite import-analysis.
 - `messages/en/context.json` predates the Project Context feature (old spec-file strings, `useContextFiles` in `hooks/core.ts` is unused legacy); new feature keys were added alongside. Tests rendering `SkillEditorModal` now need `context` messages in the provider (it has a Context tab).
@@ -28,3 +31,4 @@ process).
 ## Session Notes
 
 ## Open Questions
+- Multi-Agent Review start errors: `mutateAsync` rejections must be caught in the component (`startErrorKey(err)` in `app/multi-agent-review/helpers.ts` -> `startError.<key>` i18n); `?pr=<id>` deep links outside the active repo resolve through `usePullDetail(id)` (GET /pulls/:id), so tests mocking `@/lib/hooks/core` must also mock `usePullDetail`.

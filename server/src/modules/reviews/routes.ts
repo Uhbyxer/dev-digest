@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { RunRequest } from '@devdigest/shared';
+import { MultiAgentRunRequest, RunRequest } from '@devdigest/shared';
 import type { RunEvent } from '@devdigest/shared';
 import { getContext } from '../_shared/context.js';
+import { z } from 'zod';
 import { IdParams } from '../_shared/schemas.js';
 import { NotFoundError } from '../../platform/errors.js';
 import { ReviewService } from './service.js';
@@ -12,6 +13,8 @@ import { ReviewService } from './service.js';
  *   POST   /pulls/:id/review  {agentId} | {all:true}  → run review(s); returns runs
  *   GET    /runs/:id/events                            → SSE stream of RunEvent (replay-first)
  *   GET    /runs/:id/trace                             → the single-document RunTrace
+ *   POST   /pulls/:id/multi-agent-run {agentIds}       → fan out to the chosen agents in parallel; returns MultiAgentRunStarted
+ *   GET    /pulls/:id/multi-agent[?run=<multiRunId>]   → MultiAgentRun comparison (latest when ?run omitted; 404 if none)
  *   GET    /pulls/:id/reviews                          → persisted reviews + findings for a PR
  *   GET    /pulls/:id/smart-diff                       → PR files grouped by role (Smart Diff)
  *   POST   /findings/:id/(accept|dismiss)              → finding actions
@@ -43,6 +46,29 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
     );
     return { pr_id: req.params.id, runs, reviews };
   });
+
+  // ---- Multi-Agent Review: parallel fan-out over chosen agents -----------
+  // Same tight limit as the single trigger: each call fans out to LLM runs.
+  app.post(
+    '/pulls/:id/multi-agent-run',
+    {
+      schema: { params: IdParams, body: MultiAgentRunRequest },
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (req) => {
+      const { workspaceId } = await getContext(container, req);
+      return service.startMultiAgentRun(workspaceId, req.params.id, req.body.agentIds, req.log);
+    },
+  );
+
+  app.get(
+    '/pulls/:id/multi-agent',
+    { schema: { params: IdParams, querystring: z.object({ run: z.string().uuid().optional() }) } },
+    async (req) => {
+      const { workspaceId } = await getContext(container, req);
+      return service.getMultiAgentView(workspaceId, req.params.id, req.query.run);
+    },
+  );
 
   // ---- SSE: live run events (replay buffer first, then live; ends on done) -
   // No rate limit: SSE is one long-lived connection, not burst traffic.
