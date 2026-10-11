@@ -18,6 +18,8 @@ import type {
   CommitFilesPayload,
   IssueMeta,
   RecentPrForFile,
+  WorkflowRunMeta,
+  RunnerBundleProvider,
   GitClient,
   CloneOptions,
   UnifiedDiff,
@@ -130,6 +132,12 @@ export interface MockGitHubOptions {
   comments?: PrReviewComment[];
   /** Keyed by file path; `listRecentPrsForFile` returns `[]` for an unlisted path. */
   recentPrsForFile?: Record<string, RecentPrForFile[]>;
+  /** Workflow runs returned by listWorkflowRuns (newest first). */
+  workflowRuns?: WorkflowRunMeta[];
+  /** Artifact payloads keyed by run id; a missing key = missing/expired artifact (null). */
+  artifacts?: Record<number, unknown>;
+  /** When set, listWorkflowRuns throws it (simulates GitHub unavailable / rate limit). */
+  workflowRunsError?: Error;
 }
 
 export class MockGitHubClient implements GitHubClient {
@@ -233,6 +241,19 @@ export class MockGitHubClient implements GitHubClient {
   async findOpenPr(_repo: RepoRef, branch: string): Promise<{ url: string } | null> {
     const pr = this.openedPrs.find((p) => p.head === branch);
     return pr ? { url: 'https://github.com/mock/mock/pull/1' } : null;
+  }
+
+  async listWorkflowRuns(
+    _repo: RepoRef,
+    _workflowFile: string,
+    _limit: number,
+  ): Promise<WorkflowRunMeta[]> {
+    if (this.opts.workflowRunsError) throw this.opts.workflowRunsError;
+    return this.opts.workflowRuns ?? [];
+  }
+
+  async downloadRunArtifact(_repo: RepoRef, runId: number, _name: string): Promise<unknown | null> {
+    return this.opts.artifacts?.[runId] ?? null;
   }
 
   async getIssue(_repo: RepoRef, n: number): Promise<IssueMeta> {
@@ -403,5 +424,13 @@ export class MockLinkedDocFetcher implements LinkedDocFetcher {
   constructor(private text: string | undefined = undefined) {}
   async fetchLinkedDoc(_url: string): Promise<{ text: string } | undefined> {
     return this.text !== undefined ? { text: this.text } : undefined;
+  }
+}
+
+// ---------- Mock RunnerBundleProvider ----------
+export class MockRunnerBundleProvider implements RunnerBundleProvider {
+  constructor(private contents = '// mock devdigest runner\n') {}
+  async read(): Promise<string> {
+    return this.contents;
   }
 }

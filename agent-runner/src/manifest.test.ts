@@ -38,6 +38,29 @@ describe('manifest loading + validation (AC-20)', () => {
     expect(manifest.ci_fail_on).toBe('critical');
   });
 
+  it('loads a manifest in the exact shape the studio export writes (yaml block scalar prompt, empty skills)', () => {
+    // Mirrors `yaml.stringify` output from server/src/modules/ci/manifest.ts.
+    const studioYaml = [
+      'name: Security Reviewer',
+      'provider: openrouter',
+      'model: anthropic/claude-sonnet-4',
+      'system_prompt: |',
+      '  You review: "quotes", colons: and',
+      '  newlines.',
+      'skills: []',
+      'strategy: auto',
+      'ci_fail_on: warning',
+      '',
+    ].join('\n');
+    writeFileSync(path.join(dir, 'agents', 'security-reviewer.yaml'), studioYaml);
+
+    const manifest = loadManifest(dir);
+
+    expect(manifest.system_prompt).toBe('You review: "quotes", colons: and\nnewlines.\n');
+    expect(manifest.skills).toEqual([]);
+    expect(manifest.ci_fail_on).toBe('warning');
+  });
+
   it('fails clearly when the manifest fails schema validation (bad ci_fail_on)', () => {
     writeFileSync(
       path.join(dir, 'agents', 'bad.yaml'),

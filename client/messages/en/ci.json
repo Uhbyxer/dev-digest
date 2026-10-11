@@ -1,47 +1,44 @@
 {
   "runs": {
-    "emptyTitle": "No CI runs yet",
-    "emptyBody": "Once you export an agent to CI, every automated review shows up here.",
     "title": "CI Runs",
     "subtitle": "Agent reviews executed inside CI · not local runs",
-    "autoRefresh": "auto-refresh on",
+    "emptyTitle": "No CI runs yet",
+    "emptyBody": "Once you export an agent to CI, every automated review shows up here.",
+    "loadError": "Couldn’t load CI runs.",
     "refresh": "Refresh",
     "refreshing": "Refreshing…",
-    "filters": {
-      "last7Days": "Last 7 days",
-      "allAgents": "All agents",
-      "allRepos": "All repos",
-      "allStatuses": "All statuses"
-    },
+    "degraded": "GitHub Actions is unavailable or rate-limited, so this refresh was skipped. Showing previously ingested runs.",
+    "refreshed": "Refreshed — {ingested} new, {skipped} skipped",
     "table": {
-      "timestamp": "Timestamp",
       "pullRequest": "Pull request",
-      "source": "Source",
+      "repository": "Repository",
+      "agent": "Agent",
+      "verdict": "Verdict",
       "findings": "Findings",
       "cost": "Cost",
-      "status": "Status"
+      "duration": "Duration",
+      "when": "When",
+      "job": "Actions job"
     },
-    "view": "View",
-    "status": {
-      "succeeded": "Succeeded",
-      "noFindings": "No findings",
-      "failed": "Failed",
-      "running": "Running"
-    }
+    "viewJob": "View job",
+    "findingsBlockers": "{count} ({blockers} blocking)"
   },
   "exportWizard": {
     "title": "Export to CI",
+    "updateTitle": "Update CI config",
     "subtitle": "Run {agentName} automatically on pull requests",
-    "thisAgent": "this agent",
     "back": "Back",
     "continue": "Continue",
-    "install": "Install",
-    "installing": "Installing…",
+    "cancel": "Cancel",
+    "close": "Close",
     "steps": {
       "target": "Target",
       "preview": "Preview",
       "configure": "Configure",
       "install": "Install"
+    },
+    "target": {
+      "heading": "Where should this agent run?"
     },
     "targets": {
       "gha": "GitHub Actions",
@@ -54,53 +51,102 @@
       "cliDesc": "devdigest review --pr"
     },
     "recommended": "recommended",
-    "repoLabel": "Target repository",
-    "repoHint": "owner/name — the repo to add the workflow to",
-    "repoPlaceholder": "acme/payments-api",
-    "filesToCreate": "FILES TO CREATE",
-    "generating": "Generating…",
-    "editable": "editable",
-    "triggerLabel": "Trigger",
-    "postResultsLabel": "Post results as",
-    "postAs": {
-      "githubReview": "GitHub review",
-      "prComment": "PR comment",
-      "none": "None (exit code only)"
+    "preview": {
+      "files": "Files to create",
+      "loading": "Generating…",
+      "error": "Couldn’t generate the preview.",
+      "editable": "editable",
+      "readOnly": "read-only",
+      "runnerPlaceholder": "Bundled agent runner ({size}) — too large to display. Shipped as-is, read-only.",
+      "editHint": "Only the workflow file can be edited. Your edits are used when you install.",
+      "editLabel": "Contents of {path}"
     },
-    "blockMergeTitle": "Block merge on findings",
-    "blockMergeDesc": "Requires a GitHub App — not available with PAT in local mode",
-    "installCardTitle": "Open a PR with these files",
-    "installCardBody": "DevDigest opens a PR in {repo} titled “Add DevDigest CI review” with the {count} generated files.",
-    "ownerRepo": "owner/repo",
-    "secretNote": "Add {key} to the repo's Actions secrets before the workflow runs."
+    "configure": {
+      "triggers": "Run on pull_request",
+      "triggerOptions": {
+        "opened": "opened",
+        "synchronize": "synchronize",
+        "reopened": "reopened"
+      },
+      "postAs": "Post results as",
+      "postAsOptions": {
+        "github_review": "GitHub review (recommended)",
+        "pr_comment": "PR comment",
+        "none": "None (exit code only)"
+      },
+      "secrets": "Secrets",
+      "openrouterKey": "OPENROUTER_API_KEY",
+      "githubToken": "GITHUB_TOKEN",
+      "ready": "set",
+      "notReady": "not set",
+      "auto": "auto-provided by Actions",
+      "secretsHint": "Add any missing secret to the repository’s Actions secrets before the workflow runs. DevDigest does not check the repository’s secrets.",
+      "blockMerge": "To block merges: set Fail CI on so the run exits non-zero, then add a required status check in the repo’s branch protection. No GitHub App needed."
+    },
+    "install": {
+      "repo": "Target repository",
+      "repoHint": "owner/name — the repository to add the workflow to",
+      "repoPlaceholder": "acme/payments-api",
+      "repoInvalid": "Enter the repository as owner/name.",
+      "base": "Base branch",
+      "openPr": "Open a PR",
+      "openPrCard": "Opens a PR in {repo} titled “{title}” with the {count} generated files, from the devdigest/ci branch.",
+      "prTitle": "Add DevDigest CI review",
+      "zip": "Copy files as a zip",
+      "zipCard": "Downloads a zip of the {count} generated files. No PR is opened and nothing is installed.",
+      "zipOnly": "Only GitHub Actions can open a PR; other targets are delivered as a zip.",
+      "run": "Open PR",
+      "runZip": "Download zip",
+      "running": "Working…",
+      "error": "Couldn’t complete the install: {message}",
+      "doneTitle": "Done",
+      "donePr": "Pull request ready in {repo}.",
+      "donePrNoUrl": "Pull request opened in {repo}.",
+      "viewPr": "View pull request",
+      "doneZip": "Zip downloaded."
+    }
   },
   "ciTab": {
-    "heading": "Continuous Integration",
-    "subtitle": "Run this agent automatically on pull requests in a target repo.",
-    "exportToCi": "Export to CI",
-    "publish": "Publish to CI",
-    "update": "Update CI",
-    "noRepo": "Connect a repository first",
-    "empty": "Not deployed to CI yet. Use “Publish to CI” to open a PR that adds the workflow + agent config.",
-    "installed": "installed {date}"
-  },
-  "publishDialog": {
-    "title": "Publish to CI",
-    "subtitle": "Run {agentName} on every pull request in {repo}",
-    "intro": "Opens a pull request in {repo} adding a GitHub Actions workflow + this agent's config under .devdigest/. On every PR the agent reviews the diff.",
-    "filesLabel": "FILES",
-    "generating": "Generating…",
-    "secretNote": "Add {key} to the repo's Actions secrets before the workflow runs. GITHUB_TOKEN is provided automatically.",
-    "cancel": "Cancel",
-    "publish": "Publish",
-    "publishing": "Publishing…",
-    "republish": "Re-publish (update)",
-    "doneTitle": "Published",
-    "doneBody": "Opened/updated a pull request in {repo} with the workflow + agent config.",
-    "openPr": "View pull request",
-    "close": "Close"
+    "heading": "CI deployment",
+    "activeIn": "Active in {count, plural, one {# repo} other {# repos}}",
+    "updateConfig": "Update CI config",
+    "addToCi": "Add to CI",
+    "addRepository": "Add repository",
+    "failOn": "Fail CI on",
+    "failOnHint": "The run exits non-zero (and requests changes) at this severity. Add a required status check in branch protection to block merges.",
+    "failOnOptions": {
+      "critical": "Critical",
+      "warning": "Warning +",
+      "never": "Never"
+    },
+    "empty": "Not deployed to CI yet. Use “Add to CI” to open a PR that adds the workflow and agent config.",
+    "loadError": "Couldn’t load CI installations.",
+    "degraded": "GitHub Actions is unavailable or rate-limited — showing previously ingested runs.",
+    "version": "workflow {version}",
+    "status": {
+      "pending": "Pending",
+      "active": "Active"
+    },
+    "lastRun": "Last run",
+    "noRuns": "No runs yet",
+    "history": "History",
+    "hideHistory": "Hide history",
+    "historyEmpty": "No CI runs for this repository yet.",
+    "pr": "PR #{number}",
+    "target": {
+      "gha": "GitHub Actions",
+      "circle": "CircleCI",
+      "jenkins": "Jenkins",
+      "cli": "Generic CLI"
+    }
   },
   "page": {
     "crumb": "CI Runs"
+  },
+  "verdict": {
+    "APPROVE": "Approved",
+    "COMMENT": "Comments",
+    "REQUEST_CHANGES": "Changes requested",
+    "unknown": "Unknown"
   }
 }
