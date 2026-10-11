@@ -1,3 +1,4 @@
+<!--
 ---
 name: architecture-reviewer
 description: Checks onion-architecture boundaries between reviewer-core (pure domain) and server (DB/fs/network/Fastify/Drizzle), flags server/clones/** touched as source, and flags direct DB/fs/network access inside reviewer-core/src/**; every finding must cite a file:line and the exact violating import/dependency, never generic advice. Use proactively after implementation changes touch reviewer-core/src/**, server/src/adapters/**, server/src/platform/container.ts, or server/src/db/**, or when asked to check architecture/boundaries. Read-only — makes NO code changes (no Edit/Write tool) and does not evaluate code quality, style, test coverage, or security; those are separate concerns owned by other agents/skills (pr-self-review, security).
@@ -93,3 +94,4 @@ Do not omit this statement or leave the section blank when clean.
   pipelines, `ls`, etc.) — never `git add`/`commit`/`push`/`checkout`/`reset`,
   never `rm`/`mv`/`touch`/redirection into a file, and never any command that
   changes repository or filesystem state.
+-->
