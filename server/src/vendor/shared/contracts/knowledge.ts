@@ -201,6 +201,18 @@ export const Agent = z.object({
 });
 export type Agent = z.infer<typeof Agent>;
 
+/**
+ * An agent in the GET /agents list, enriched with the pre-run estimate derived
+ * from its past `done` runs. `est_*` are null (and `has_history` false) when the
+ * agent has no completed runs yet. Create/update payloads keep using `Agent`.
+ */
+export const AgentWithEstimate = Agent.extend({
+  est_duration_ms: z.number().int().nullable(),
+  est_cost_usd: z.number().nullable(),
+  has_history: z.boolean(),
+});
+export type AgentWithEstimate = z.infer<typeof AgentWithEstimate>;
+
 export const AgentSkillLink = z.object({
   agent_id: z.string(),
   skill_id: z.string(),

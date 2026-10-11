@@ -1,5 +1,14 @@
 import type { Container } from '../../platform/container.js';
-import type { FindingActionKind, RunEventKind, RunTrace, SmartDiff } from '@devdigest/shared';
+import type {
+  AgentColumn,
+  FindingActionKind,
+  MultiAgentRun,
+  MultiAgentRunStarted,
+  RunEventKind,
+  RunTrace,
+  Severity,
+  SmartDiff,
+} from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow, PullRow } from '../../db/rows.js';
 import * as schema from '../../db/schema.js';
@@ -9,6 +18,7 @@ import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
 import { reviewToDto } from './helpers.js';
 import { buildSmartDiff } from './smart-diff/service.js';
+import { computeConflicts } from './conflicts.js';
 
 // Re-export DTO types + converters for backward-compatible imports from
 // './service.js' (these previously lived here; logic now in ./helpers.ts).
@@ -27,6 +37,8 @@ export type { ReviewDto, ReviewDtoFinding } from './helpers.js';
  * Also: the finding accept/dismiss actions. The bulky run execution lives in
  * run-executor; this class keeps the public method surface.
  */
+const SEVERITY_ORDER: Record<Severity, number> = { CRITICAL: 0, WARNING: 1, SUGGESTION: 2 };
+
 export class ReviewService {
   private repo: ReviewRepository;
   private agents: Container['agentsRepo'];
@@ -175,6 +187,7 @@ export class ReviewService {
     workspaceId: string,
     prId: string,
     targets: AgentRow[],
+    multiAgentRunId?: string,
   ): Promise<{
     pull: PullRow;
     repo: typeof schema.repos.$inferSelect;
@@ -193,10 +206,157 @@ export class ReviewService {
         prId,
         provider: agent.provider,
         model: agent.model,
+        ...(multiAgentRunId ? { multiAgentRunId } : {}),
       });
       jobs.push({ agent, runId });
     }
     return { pull, repo, jobs };
+  }
+
+  // ===========================================================================
+  // Multi-Agent Review: one persistent fan-out group over N chosen agents.
+  // ===========================================================================
+
+  /**
+   * Start a multi-agent run: validate the chosen agents (in this workspace and
+   * enabled), persist one `multi_agent_runs` group, create an `agent_runs` row
+   * per agent linked to it, and kick the SAME executor as the single review off
+   * in the background (parallel fan-out). Returns the ids immediately; the
+   * results page polls `getMultiAgentView`.
+   */
+  async startMultiAgentRun(
+    workspaceId: string,
+    prId: string,
+    agentIds: string[],
+    logger?: Logger,
+  ): Promise<MultiAgentRunStarted> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+
+    const targets: AgentRow[] = [];
+    for (const id of [...new Set(agentIds)]) {
+      const agent = await this.agents.getById(workspaceId, id);
+      if (!agent) throw new NotFoundError('Agent not found');
+      if (!agent.enabled) {
+        throw new AppError('agent_disabled', `Agent "${agent.name}" is disabled`, 409);
+      }
+      targets.push(agent);
+    }
+
+    // Resolve the repo BEFORE persisting the group so a missing repo can't
+    // leave an orphan `multi_agent_runs` row behind.
+    const repoRow = await this.repo.getRepo(pull.repoId);
+    if (!repoRow) throw new NotFoundError('Repo not found');
+
+    const multi = await this.repo.createMultiAgentRun(workspaceId, prId);
+    const { pull: runPull, repo, jobs } = await this.createRunJobs(workspaceId, prId, targets, multi.id);
+
+    void this.executor.executeRuns(workspaceId, runPull, repo, jobs, logger).catch((err) => {
+      logger?.error(
+        { prId, multiRunId: multi.id, err: (err as Error).message },
+        'multi-agent review: background execution crashed',
+      );
+    });
+
+    return {
+      multi_run_id: multi.id,
+      pr_id: prId,
+      runs: jobs.map(({ agent, runId }) => ({
+        run_id: runId,
+        agent_id: agent.id,
+        agent_name: agent.name,
+      })),
+    };
+  }
+
+  /**
+   * The multi-agent comparison for a PR: the given multi-run, or the latest when
+   * `multiRunId` is omitted. Conflicts are computed on read (deterministic, from
+   * persisted findings of the completed runs); running columns carry no
+   * score/findings yet.
+   */
+  async getMultiAgentView(
+    workspaceId: string,
+    prId: string,
+    multiRunId?: string,
+  ): Promise<MultiAgentRun> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const multi = await this.repo.getMultiAgentRun(workspaceId, prId, multiRunId);
+    if (!multi) throw new NotFoundError('Multi-agent run not found');
+
+    const runs = await this.repo.listRunsForMultiRun(workspaceId, multi.id);
+    const reviews = await this.repo.reviewsForRuns(runs.map((r) => r.runId));
+    const reviewByRun = new Map(
+      reviews.filter((r) => r.review.runId).map((r) => [r.review.runId as string, r]),
+    );
+
+    const columns: AgentColumn[] = runs.map((run) => {
+      // `queued` is still in flight (keep polling); `cancelled` has no column
+      // status of its own in the contract, so it maps to `failed` with a
+      // distinguishing "Cancelled" summary below.
+      const status: AgentColumn['status'] =
+        run.status === 'done'
+          ? 'done'
+          : run.status === 'running' || run.status === 'queued'
+            ? 'running'
+            : 'failed';
+      const found = status === 'done' ? reviewByRun.get(run.runId) : undefined;
+      const findings = (found?.findings ?? [])
+        .map((f) => ({
+          id: f.id,
+          severity: f.severity as Severity,
+          category: f.category,
+          title: f.title,
+          file: f.file,
+          start_line: f.startLine,
+          end_line: f.endLine,
+          kind: f.kind,
+          rationale: f.rationale,
+          suggestion: f.suggestion ?? null,
+          confidence: f.confidence,
+          accepted_at: f.acceptedAt?.toISOString() ?? null,
+          dismissed_at: f.dismissedAt?.toISOString() ?? null,
+        }))
+        .sort(
+          (a, b) =>
+            SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] ||
+            a.file.localeCompare(b.file) ||
+            a.start_line - b.start_line,
+        );
+      return {
+        run_id: run.runId,
+        agent_id: run.agentId ?? '',
+        agent_name: run.agentName ?? 'Unknown agent',
+        provider: run.provider,
+        model: run.model,
+        status,
+        verdict: found?.review.verdict ?? null,
+        score: status === 'done' ? (found?.review.score ?? run.score) : null,
+        summary:
+          status === 'failed'
+            ? (run.error ?? (run.status === 'cancelled' ? 'Cancelled' : null))
+            : (found?.review.summary ?? null),
+        duration_ms: run.durationMs,
+        cost_usd: run.costUsd,
+        findings,
+      };
+    });
+
+    const durations = columns.map((c) => c.duration_ms).filter((d): d is number => d != null);
+    const costs = columns.map((c) => c.cost_usd).filter((c): c is number => c != null);
+
+    return {
+      id: multi.id,
+      pr_id: prId,
+      pr_number: pull.number,
+      ran_at: multi.ranAt.toISOString(),
+      agent_count: columns.length,
+      total_duration_ms: durations.length ? Math.max(...durations) : 0,
+      total_cost_usd: costs.length ? costs.reduce((a, b) => a + b, 0) : null,
+      columns,
+      conflicts: computeConflicts(columns),
+    };
   }
 
   /** DTOs for reviews whose `run_id` is one of `runIds` (this call's own runs). */

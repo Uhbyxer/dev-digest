@@ -63,6 +63,35 @@ export class AgentsRepository {
   }
 
   /**
+   * Per-agent run-history aggregates over COMPLETED (`status='done'`) runs, for
+   * the pre-run estimate: average duration, average cost (ignoring unpriced
+   * runs) and the number of done runs. Agents without done runs are absent.
+   */
+  async estimatesByAgent(
+    workspaceId: string,
+  ): Promise<{ agentId: string; avgDurationMs: number | null; avgCostUsd: number | null; runs: number }[]> {
+    const rows = await this.db
+      .select({
+        agentId: t.agentRuns.agentId,
+        avgDurationMs: sql<string | null>`avg(${t.agentRuns.durationMs})`,
+        avgCostUsd: sql<string | null>`avg(${t.agentRuns.costUsd})`,
+        runs: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(t.agentRuns)
+      .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.status, 'done')))
+      .groupBy(t.agentRuns.agentId);
+    return rows
+      .filter((r): r is typeof r & { agentId: string } => r.agentId !== null)
+      .map((r) => ({
+        agentId: r.agentId,
+        // pg returns avg() as a numeric string (or null when every value is null).
+        avgDurationMs: r.avgDurationMs == null ? null : Number(r.avgDurationMs),
+        avgCostUsd: r.avgCostUsd == null ? null : Number(r.avgCostUsd),
+        runs: r.runs,
+      }));
+  }
+
+  /**
    * Case-insensitive lookup by name within a workspace. `name` has no DB
    * uniqueness constraint, so this can return more than one match — callers
    * (MCP's agent-name resolver) decide how to handle 0 / 1 / many.
