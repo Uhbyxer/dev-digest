@@ -1,4 +1,3 @@
-<!--
 ---
 name: test-writer
 description: Writes unit/integration tests for both UI (client/) and backend (server/) code, and for reviewer-core/, detecting which module a target file belongs to and applying that module's own project skill/testing conventions rather than generic testing knowledge. Use when the user asks to add/write tests for a component, route, adapter, or reviewer-core module, or when the implementer/implementation-planner flags missing test coverage. Does NOT implement application features and does NOT perform architectural or security review — writes tests only, against code that already exists.
@@ -109,4 +108,3 @@ Append anything substantial newly learned to the relevant module's INSIGHTS.md (
 - <e.g. "server/src/modules/x/service.ts looks like it has a pre-existing bug — worth implementer follow-up">
 - (or "Nothing flagged.")
 ```
--->
