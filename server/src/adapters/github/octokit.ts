@@ -1,4 +1,5 @@
 import { Octokit } from 'octokit';
+import AdmZip from 'adm-zip';
 import type {
   GitHubClient,
   RepoRef,
@@ -12,10 +13,13 @@ import type {
   CommitFilesPayload,
   IssueMeta,
   RecentPrForFile,
+  WorkflowRunMeta,
 } from '@devdigest/shared';
 import { withRetry, withTimeout } from '../../platform/resilience.js';
 
 const TIMEOUT = 30_000;
+/** Result artifacts are tiny JSON; refuse anything bigger (zip-bomb / abuse guard). */
+const MAX_ARTIFACT_BYTES = 1_000_000;
 
 function mapStatus(state: string, merged: boolean | undefined): PrStatus {
   if (merged) return 'merged';
@@ -385,6 +389,82 @@ export class OctokitGitHubClient implements GitHubClient {
           });
           const pr = res.data[0];
           return pr ? { url: pr.html_url } : null;
+        })(),
+        TIMEOUT,
+      ),
+    );
+  }
+
+  async listWorkflowRuns(
+    repo: RepoRef,
+    workflowFile: string,
+    limit: number,
+  ): Promise<WorkflowRunMeta[]> {
+    return withRetry(() =>
+      withTimeout(
+        (async () => {
+          const res = await this.octokit.rest.actions.listWorkflowRuns({
+            owner: repo.owner,
+            repo: repo.name,
+            workflow_id: workflowFile,
+            event: 'pull_request',
+            status: 'completed',
+            per_page: limit,
+          });
+          return res.data.workflow_runs.map((r) => ({
+            id: r.id,
+            html_url: r.html_url,
+            status: r.status ?? null,
+            conclusion: r.conclusion ?? null,
+            created_at: r.created_at,
+            pr_numbers: (r.pull_requests ?? []).map((p) => p.number),
+          }));
+        })(),
+        TIMEOUT,
+      ),
+    );
+  }
+
+  async downloadRunArtifact(repo: RepoRef, runId: number, name: string): Promise<unknown | null> {
+    return withRetry(() =>
+      withTimeout(
+        (async () => {
+          const list = await this.octokit.rest.actions.listWorkflowRunArtifacts({
+            owner: repo.owner,
+            repo: repo.name,
+            run_id: runId,
+            name,
+          });
+          const artifact = list.data.artifacts.find((a) => a.name === name);
+          if (!artifact || artifact.expired || artifact.size_in_bytes > MAX_ARTIFACT_BYTES) {
+            return null;
+          }
+          let data: unknown;
+          try {
+            const res = await this.octokit.rest.actions.downloadArtifact({
+              owner: repo.owner,
+              repo: repo.name,
+              artifact_id: artifact.id,
+              archive_format: 'zip',
+            });
+            data = res.data;
+          } catch (err) {
+            // Expired / garbage-collected between list and download → treat as missing.
+            const status = (err as { status?: number }).status;
+            if (status === 404 || status === 410) return null;
+            throw err;
+          }
+          try {
+            const zip = new AdmZip(Buffer.from(data as ArrayBuffer));
+            const entry = zip
+              .getEntries()
+              .find((e) => !e.isDirectory && e.entryName === `${name}.json`);
+            if (!entry || entry.header.size > MAX_ARTIFACT_BYTES) return null;
+            return JSON.parse(entry.getData().toString('utf8')) as unknown;
+          } catch {
+            // Corrupt zip / non-JSON content: skipped like a missing artifact (AC-31).
+            return null;
+          }
         })(),
         TIMEOUT,
       ),

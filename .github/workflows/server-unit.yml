@@ -63,6 +63,12 @@ jobs:
         working-directory: reviewer-core
         run: npm ci
 
+      # src/modules/ci/parity.test.ts runs the real agent-runner (../agent-runner/src),
+      # whose `yaml` import resolves from agent-runner/node_modules. agent-runner uses pnpm.
+      - name: Install agent-runner deps
+        working-directory: agent-runner
+        run: pnpm install --frozen-lockfile
+
       - run: pnpm typecheck
 
   unit:
@@ -92,6 +98,12 @@ jobs:
       - name: Install reviewer-core deps
         working-directory: reviewer-core
         run: npm ci
+
+      # src/modules/ci/parity.test.ts runs the real agent-runner (../agent-runner/src),
+      # whose `yaml` import resolves from agent-runner/node_modules. agent-runner uses pnpm.
+      - name: Install agent-runner deps
+        working-directory: agent-runner
+        run: pnpm install --frozen-lockfile
 
       # Inlined rather than `pnpm test:unit`: server/package.json is
       # skip-worktree (a local variant), so the committed package.json may

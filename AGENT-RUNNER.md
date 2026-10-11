@@ -57,3 +57,7 @@ main()                                  index.ts: читає env, будує Ope
 | `DEVDIGEST_DIR` | де лежить `.devdigest/` (за замовчуванням `./.devdigest`) |
 | `DEVDIGEST_POST_AS` | `github_review` (за замовчуванням), `pr_comment` або `none` |
 | `DEVDIGEST_RESULT_PATH` | куди писати `devdigest-result.json` |
+
+## Відоме обмеження v1
+
+Раннер завжди використовує OpenRouter через `OPENROUTER_API_KEY` і ігнорує `manifest.provider`. Тому id моделей в агенті мають бути id з OpenRouter (наприклад `anthropic/claude-sonnet-4`), інакше запуск у CI завершиться помилкою.

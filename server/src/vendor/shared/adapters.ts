@@ -140,6 +140,18 @@ export interface CommitFilesPayload {
   files: CommitFile[];
 }
 
+/** A completed GitHub Actions workflow run (the subset ingest needs). */
+export interface WorkflowRunMeta {
+  id: number;
+  html_url: string;
+  /** `completed`, `in_progress`, … */
+  status: string | null;
+  conclusion: string | null;
+  created_at: string;
+  /** PR numbers the run is associated with (empty for fork PRs). */
+  pr_numbers: number[];
+}
+
 /** A merged PR resolved from one of `path`'s recent commits. */
 export interface RecentPrForFile {
   pr_number: number;
@@ -176,6 +188,17 @@ export interface GitHubClient {
   commitFiles(repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }>;
   /** The open PR whose head is `branch`, if any (so re-publish reuses it). */
   findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string } | null>;
+  /**
+   * Recent runs of the workflow file `workflowFile` (e.g. `devdigest-review.yml`),
+   * newest first. Throws on API failure/rate limit (the caller reports a degraded refresh).
+   */
+  listWorkflowRuns(repo: RepoRef, workflowFile: string, limit: number): Promise<WorkflowRunMeta[]>;
+  /**
+   * Download artifact `name` of run `runId` and return the parsed JSON of the single
+   * `<name>.json` file inside, or null when the artifact is missing/expired/unreadable
+   * as JSON. Throws on API failure/rate limit.
+   */
+  downloadRunArtifact(repo: RepoRef, runId: number, name: string): Promise<unknown | null>;
   getIssue(repo: RepoRef, n: number): Promise<IssueMeta>;
   /** GET /user — for "posting as @user". */
   currentLogin(): Promise<string>;
@@ -312,4 +335,10 @@ export interface SecretsProvider {
    * providers (e.g. the env-only MVP backend) may omit it.
    */
   set?(key: SecretKey, value: string): Promise<void>;
+}
+
+// ---------- Runner bundle (the built agent-runner shipped into exported PRs) ----------
+export interface RunnerBundleProvider {
+  /** UTF-8 contents of the committed `agent-runner/dist/index.js`. */
+  read(): Promise<string>;
 }

@@ -6,6 +6,7 @@ import type {
   CodeIndex,
   Embedder,
   LLMProvider,
+  RunnerBundleProvider,
 } from '@devdigest/shared';
 import type { AppConfig } from './config.js';
 import type { Db } from '../db/client.js';
@@ -30,6 +31,7 @@ import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
 import { FsContextDocsStore, type ContextDocsStore } from '../adapters/context-docs/index.js';
+import { FsRunnerBundleProvider } from '../adapters/runner-bundle/index.js';
 import { fetchLinkedDoc, type LinkedDocFetcher } from '../adapters/linked-doc/index.js';
 
 /**
@@ -57,6 +59,8 @@ export interface ContainerOverrides {
   linkedDocFetcher?: LinkedDocFetcher;
   /** Project Context working-tree doc store — tests inject an in-memory mock. */
   contextDocs?: ContextDocsStore;
+  /** Built agent-runner bytes shipped into exported PRs — tests inject a tiny mock. */
+  runnerBundle?: RunnerBundleProvider;
 }
 
 export class Container {
@@ -84,6 +88,7 @@ export class Container {
   private _priceBook?: PriceBook;
   private _linkedDocFetcher?: LinkedDocFetcher;
   private _contextDocs?: ContextDocsStore;
+  private _runnerBundle?: RunnerBundleProvider;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -144,6 +149,13 @@ export class Container {
     if (this.overrides.contextDocs) return this.overrides.contextDocs;
     this._contextDocs ??= new FsContextDocsStore();
     return this._contextDocs;
+  }
+
+  /** The committed `agent-runner/dist/index.js`, read from disk (Export to CI). */
+  get runnerBundle(): RunnerBundleProvider {
+    if (this.overrides.runnerBundle) return this.overrides.runnerBundle;
+    this._runnerBundle ??= new FsRunnerBundleProvider();
+    return this._runnerBundle;
   }
 
   /** Linked-spec URL fetcher for the intent layer (best-effort, SSRF-guarded). */

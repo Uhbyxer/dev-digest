@@ -1,11 +1,26 @@
-import { pgTable, index, uuid, text, integer, jsonb, timestamp, doublePrecision } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  index,
+  uuid,
+  text,
+  integer,
+  bigint,
+  jsonb,
+  timestamp,
+  doublePrecision,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { workspaces } from './core';
 import { agents } from './agents';
 import { pullRequests } from './pulls';
+import { ciInstallations } from './ci';
 
 // ============================================================ Observability
 
-export const agentRuns = pgTable('agent_runs', {
+export const agentRuns = pgTable(
+  'agent_runs',
+  {
   id: uuid('id').primaryKey().defaultRandom(),
   workspaceId: uuid('workspace_id')
     .notNull()
@@ -30,12 +45,28 @@ export const agentRuns = pgTable('agent_runs', {
   score: integer('score'),
   /** Findings that tripped the agent's gate (severity ≥ ciFailOn). */
   blockers: integer('blockers'),
+  // ---- CI metadata (source='ci' only; null for local runs). `prId` stays null
+  // for CI runs — a fork/external PR has no internal pull_requests row.
+  ciInstallationId: uuid('ci_installation_id').references(() => ciInstallations.id, {
+    onDelete: 'set null',
+  }),
+  ciPrNumber: integer('ci_pr_number'),
+  /** "owner/name" of the repository the CI run happened in. */
+  ciRepo: text('ci_repo'),
+  /** Link to the GitHub Actions run/job. */
+  ciJobUrl: text('ci_job_url'),
+  /** GitHub Actions workflow run id (int64). */
+  ciGithubRunId: bigint('ci_github_run_id', { mode: 'number' }),
   /** Fan-out group this run belongs to (Multi-Agent Review); null for single-agent runs. */
   multiAgentRunId: uuid('multi_agent_run_id').references(() => multiAgentRuns.id, {
     onDelete: 'cascade',
   }),
 }, (t) => ({
   multiRunIdx: index('agent_runs_multi_agent_run_idx').on(t.multiAgentRunId),
+  // Idempotent ingest (AC-30): one agent_runs row per (installation, Actions run, PR).
+  ciIdentityUq: uniqueIndex('agent_runs_ci_identity_uq')
+    .on(t.ciInstallationId, t.ciGithubRunId, t.ciPrNumber)
+    .where(sql`${t.source} = 'ci'`),
 }));
 
 /** Whole trace of one run as a SINGLE jsonb document. */
