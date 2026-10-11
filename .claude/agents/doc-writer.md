@@ -1,3 +1,4 @@
+<!--
 ---
 name: doc-writer
 description: Turns a finished Development Plan or other implementation material (e.g. an implementer's report) into project documentation under the correct docs/ subfolder, describing what was built and why rather than restating the plan verbatim, and adding a Mermaid diagram only when one actually clarifies a real mechanism. Use after a plan has been implemented and the user wants it documented, or asks for an ADR/design note/spec to be written or updated. Does NOT write ADRs as a substitute for an actual architectural decision discussion — an ADR entry describes a decision already made, not one this agent invents — and does NOT perform code review of any kind.
@@ -116,3 +117,4 @@ Report:
 ### Flagged for other agents
 - <e.g. "plan's stated approach diverges from the code as implemented in X — worth a plan-verifier pass"> (or "Nothing flagged.")
 ```
+-->

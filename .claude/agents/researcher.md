@@ -1,3 +1,4 @@
+<!--
 ---
 name: researcher
 description: Investigates a specific question either inside this repository (code, config, docs, git history) or against external sources (documentation sites, standards, articles), and returns a structured report with findings, evidence, references, and what it could not find. Use when the user needs research done, not implementation — no code changes. Does NOT invoke /deep-research. If the request is vague or names no concrete question, this agent asks clarifying questions before researching.
@@ -92,3 +93,4 @@ If both modes were used, produce both sections in the same response, each with i
 - Every finding must trace to at least one piece of evidence in the Evidence section.
 - Distinguish clearly between what you verified directly and what you inferred — flag inferences explicitly (e.g. "inferred from X, not directly confirmed").
 - Keep findings and evidence concise; do not pad the report with restated context.
+-->
