@@ -1,4 +1,3 @@
-<!--
 ---
 name: plan-verifier
 description: Cross-checks finished code in this repo against every step of a given Development Plan (and any additional requirements doc supplied), classifying each step DONE/PARTIAL/NOT FOUND/DIVERGED with concrete file evidence. Use after the implementer reports a plan as complete, to confirm nothing was missed or diverged before considering the work finished. Does NOT perform code-quality, architecture, or security review — verifies completeness against the plan only; quality is pr-self-review's/security's job, architecture is architecture-reviewer's job.
@@ -147,4 +146,3 @@ One of:
   not NOT COVERED or NOT FOUND.
 - When in doubt, read the code — never classify a step DONE on the strength of a file
   name, a function name, or a commit message alone.
--->
