@@ -1,5 +1,6 @@
 import {
   pgTable,
+  index,
   uuid,
   text,
   integer,
@@ -56,16 +57,17 @@ export const agentRuns = pgTable(
   ciJobUrl: text('ci_job_url'),
   /** GitHub Actions workflow run id (int64). */
   ciGithubRunId: bigint('ci_github_run_id', { mode: 'number' }),
-},
-  (t) => ({
-    // Idempotent ingest (AC-30): one agent_runs row per (installation, Actions run, PR).
-    ciIdentityUq: uniqueIndex('agent_runs_ci_identity_uq')
-      .on(t.ciInstallationId, t.ciGithubRunId, t.ciPrNumber)
-      .where(sql`${t.source} = 'ci'`),
+  /** Fan-out group this run belongs to (Multi-Agent Review); null for single-agent runs. */
+  multiAgentRunId: uuid('multi_agent_run_id').references(() => multiAgentRuns.id, {
+    onDelete: 'cascade',
   }),
-);
-
-
+}, (t) => ({
+  multiRunIdx: index('agent_runs_multi_agent_run_idx').on(t.multiAgentRunId),
+  // Idempotent ingest (AC-30): one agent_runs row per (installation, Actions run, PR).
+  ciIdentityUq: uniqueIndex('agent_runs_ci_identity_uq')
+    .on(t.ciInstallationId, t.ciGithubRunId, t.ciPrNumber)
+    .where(sql`${t.source} = 'ci'`),
+}));
 
 /** Whole trace of one run as a SINGLE jsonb document. */
 export const runTraces = pgTable('run_traces', {

@@ -1,5 +1,5 @@
 {
-  "id": "47e5da15-9ca1-42f1-a9d6-befd7e565caa",
+  "id": "3a18f253-d2a0-48e2-b8b6-45808bcf6e88",
   "prevId": "e4b62d14-2ddc-4a35-af4e-4fcf86883c64",
   "version": "7",
   "dialect": "postgresql",
@@ -2787,20 +2787,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "workflow_version": {
-          "name": "workflow_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'1'"
         }
       },
       "indexes": {},
@@ -2820,17 +2806,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "ci_installations_agent_repo_target_uq": {
-          "name": "ci_installations_agent_repo_target_uq",
-          "nullsNotDistinct": false,
-          "columns": [
-            "agent_id",
-            "repo",
-            "target_type"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3032,62 +3008,25 @@
           "primaryKey": false,
           "notNull": false
         },
-        "ci_installation_id": {
-          "name": "ci_installation_id",
+        "multi_agent_run_id": {
+          "name": "multi_agent_run_id",
           "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ci_pr_number": {
-          "name": "ci_pr_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ci_repo": {
-          "name": "ci_repo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ci_job_url": {
-          "name": "ci_job_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ci_github_run_id": {
-          "name": "ci_github_run_id",
-          "type": "bigint",
           "primaryKey": false,
           "notNull": false
         }
       },
       "indexes": {
-        "agent_runs_ci_identity_uq": {
-          "name": "agent_runs_ci_identity_uq",
+        "agent_runs_multi_agent_run_idx": {
+          "name": "agent_runs_multi_agent_run_idx",
           "columns": [
             {
-              "expression": "ci_installation_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ci_github_run_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ci_pr_number",
+              "expression": "multi_agent_run_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
-          "where": "\"agent_runs\".\"source\" = 'ci'",
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -3133,17 +3072,17 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "agent_runs_ci_installation_id_ci_installations_id_fk": {
-          "name": "agent_runs_ci_installation_id_ci_installations_id_fk",
+        "agent_runs_multi_agent_run_id_multi_agent_runs_id_fk": {
+          "name": "agent_runs_multi_agent_run_id_multi_agent_runs_id_fk",
           "tableFrom": "agent_runs",
-          "tableTo": "ci_installations",
+          "tableTo": "multi_agent_runs",
           "columnsFrom": [
-            "ci_installation_id"
+            "multi_agent_run_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

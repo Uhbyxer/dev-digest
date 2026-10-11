@@ -28,6 +28,14 @@ export const AgentColumnFinding = z.object({
   file: z.string(),
   start_line: z.number().int(),
   kind: z.string().nullish(),
+  // Additive detail so the multi-agent page can render + act on a finding (and
+  // so conflict grouping can use the full line range) without a second fetch.
+  end_line: z.number().int().nullish(),
+  rationale: z.string().nullish(),
+  suggestion: z.string().nullish(),
+  confidence: z.number().nullish(),
+  accepted_at: z.string().nullish(),
+  dismissed_at: z.string().nullish(),
 });
 export type AgentColumnFinding = z.infer<typeof AgentColumnFinding>;
 
@@ -84,6 +92,22 @@ export const MultiAgentRun = z.object({
   conflicts: z.array(Conflict),
 });
 export type MultiAgentRun = z.infer<typeof MultiAgentRun>;
+
+/** Body of POST /pulls/:id/multi-agent-run — the agents to fan the PR out to. */
+export const MultiAgentRunRequest = z.object({
+  agentIds: z.array(z.string().uuid()).min(1),
+});
+export type MultiAgentRunRequest = z.infer<typeof MultiAgentRunRequest>;
+
+/** Response of POST /pulls/:id/multi-agent-run — the persisted group + its runs. */
+export const MultiAgentRunStarted = z.object({
+  multi_run_id: z.string(),
+  pr_id: z.string(),
+  runs: z.array(
+    z.object({ run_id: z.string(), agent_id: z.string(), agent_name: z.string() }),
+  ),
+});
+export type MultiAgentRunStarted = z.infer<typeof MultiAgentRunStarted>;
 
 // ---------------------------------------------------------------------------
 // Per-agent Stats (GET /agents/:id/stats)

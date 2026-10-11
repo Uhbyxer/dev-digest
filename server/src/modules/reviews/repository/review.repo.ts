@@ -73,6 +73,24 @@ export async function reviewsForPull(
   }));
 }
 
+/** Reviews (+ findings) produced by the given agent runs, keyed by `runId`. */
+export async function reviewsForRuns(
+  db: Db,
+  runIds: string[],
+): Promise<{ review: ReviewRow; findings: FindingRow[] }[]> {
+  if (runIds.length === 0) return [];
+  const reviews = await db.select().from(t.reviews).where(inArray(t.reviews.runId, runIds));
+  if (reviews.length === 0) return [];
+  const findings = await db
+    .select()
+    .from(t.findings)
+    .where(inArray(t.findings.reviewId, reviews.map((r) => r.id)));
+  return reviews.map((review) => ({
+    review,
+    findings: findings.filter((f) => f.reviewId === review.id),
+  }));
+}
+
 export async function getReview(db: Db, reviewId: string): Promise<ReviewRow | undefined> {
   const [row] = await db.select().from(t.reviews).where(eq(t.reviews.id, reviewId));
   return row;

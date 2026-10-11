@@ -14,3 +14,4 @@ export * from "./onboarding";
 export * from "./brief";
 export * from "./evals";
 export * from "./ci";
+export * from "./multi-agent";

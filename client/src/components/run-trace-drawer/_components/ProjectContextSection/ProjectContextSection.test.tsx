@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import runsMessages from "../../../../../../../../../../messages/en/runs.json";
+import runsMessages from "../../../../../messages/en/runs.json";
 import { ProjectContextSection } from "./ProjectContextSection";
 
 afterEach(cleanup);

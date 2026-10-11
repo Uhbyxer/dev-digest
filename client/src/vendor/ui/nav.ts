@@ -32,6 +32,13 @@ export const NAV: NavGroup[] = [
       { key: "ci-runs", label: "CI Runs", icon: "Workflow", href: "/ci-runs", gKey: "i" },
     ],
   },
+  {
+    section: "GLOBAL",
+    items: [
+      // Global (not repo-scoped): no :repoId token, resolveHref passes it through unchanged.
+      { key: "multi-agent", label: "Multi-Agent Review", icon: "Users", href: "/multi-agent-review" },
+    ],
+  },
 ];
 
 export const SETTINGS_ITEM: NavItemDef = {

@@ -168,7 +168,11 @@ export function useFindingAction() {
         reply ? { reply } : undefined,
       ),
     onSuccess: (_d, { prId }) => {
-      if (prId) qc.invalidateQueries({ queryKey: ["reviews", prId] });
+      if (prId) {
+        qc.invalidateQueries({ queryKey: ["reviews", prId] });
+        // The multi-agent page renders the same findings from its own resource.
+        qc.invalidateQueries({ queryKey: ["multi-agent", prId] });
+      }
     },
   });
 }

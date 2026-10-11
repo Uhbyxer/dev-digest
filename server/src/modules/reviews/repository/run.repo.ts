@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
 import type { RunSummary, RunTrace } from '@devdigest/shared';
@@ -122,6 +122,8 @@ export async function createAgentRun(
     prId: string;
     provider: string | null;
     model: string | null;
+    /** Fan-out group (Multi-Agent Review) this run belongs to; omit for single runs. */
+    multiAgentRunId?: string | null;
   },
 ): Promise<string> {
   const [row] = await db
@@ -132,6 +134,7 @@ export async function createAgentRun(
       prId: values.prId,
       provider: values.provider,
       model: values.model,
+      multiAgentRunId: values.multiAgentRunId ?? null,
       status: 'running',
       source: 'local',
     })
@@ -187,4 +190,86 @@ export async function saveRunTrace(db: Db, runId: string, trace: RunTrace): Prom
 export async function getRunTrace(db: Db, runId: string): Promise<RunTrace | undefined> {
   const [row] = await db.select().from(t.runTraces).where(eq(t.runTraces.runId, runId));
   return row ? (row.trace as RunTrace) : undefined;
+}
+
+// ---- multi-agent runs -----------------------------------------------------
+
+export type MultiAgentRunRow = typeof t.multiAgentRuns.$inferSelect;
+
+/** One agent_runs row of a multi-run, joined with the agent's name. */
+export interface MultiRunAgentRunRow {
+  runId: string;
+  agentId: string | null;
+  agentName: string | null;
+  provider: string | null;
+  model: string | null;
+  status: string | null;
+  error: string | null;
+  durationMs: number | null;
+  costUsd: number | null;
+  score: number | null;
+  ranAt: Date;
+}
+
+/** Create the persistent group row for one multi-agent fan-out on a PR. */
+export async function createMultiAgentRun(
+  db: Db,
+  workspaceId: string,
+  prId: string,
+): Promise<MultiAgentRunRow> {
+  const [row] = await db.insert(t.multiAgentRuns).values({ workspaceId, prId }).returning();
+  return row!;
+}
+
+/** A multi-run of a PR (workspace-scoped): the given id, or the latest when omitted. */
+export async function getMultiAgentRun(
+  db: Db,
+  workspaceId: string,
+  prId: string,
+  multiRunId?: string,
+): Promise<MultiAgentRunRow | undefined> {
+  const where = and(
+    eq(t.multiAgentRuns.workspaceId, workspaceId),
+    eq(t.multiAgentRuns.prId, prId),
+    ...(multiRunId ? [eq(t.multiAgentRuns.id, multiRunId)] : []),
+  );
+  const [row] = await db
+    .select()
+    .from(t.multiAgentRuns)
+    .where(where)
+    .orderBy(desc(t.multiAgentRuns.ranAt))
+    .limit(1);
+  return row;
+}
+
+/** The agent runs of a multi-run, in start order, joined with agent name. */
+export async function listRunsForMultiRun(
+  db: Db,
+  workspaceId: string,
+  multiRunId: string,
+): Promise<MultiRunAgentRunRow[]> {
+  const rows = await db
+    .select({ run: t.agentRuns, agentName: t.agents.name })
+    .from(t.agentRuns)
+    .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
+    .where(
+      and(
+        eq(t.agentRuns.workspaceId, workspaceId),
+        eq(t.agentRuns.multiAgentRunId, multiRunId),
+      ),
+    )
+    .orderBy(asc(t.agentRuns.ranAt), asc(t.agentRuns.id));
+  return rows.map(({ run, agentName }) => ({
+    runId: run.id,
+    agentId: run.agentId,
+    agentName: agentName ?? null,
+    provider: run.provider,
+    model: run.model,
+    status: run.status,
+    error: run.error,
+    durationMs: run.durationMs,
+    costUsd: run.costUsd,
+    score: run.score,
+    ranAt: run.ranAt,
+  }));
 }
